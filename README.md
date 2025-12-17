@@ -32,8 +32,7 @@ A React Native language learning application that uses AI to predict the next wo
 
 
 
-
-# Project Structure & Organization
+## Project Structure & Organization
 
 ## Root Directory Layout
 ```
