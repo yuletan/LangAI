@@ -1,4 +1,4 @@
-LangAI - An AI Language Predictor App
+# LangAI - An AI Language Predictor App
 
 A React Native language learning application that uses AI to predict the next words users might want to type, helping them learn languages through contextual suggestions and interactive lessons.
 
