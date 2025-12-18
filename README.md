@@ -60,7 +60,7 @@ An app that utilises AI to predict, teach and test learners of a new language at
 - **DeepSeek API**: Sign up at [DeepSeek Platform](https://platform.deepseek.com/)
 - **OpenRouter API**: Sign up at [OpenRouter](https://openrouter.ai/) (fallback provider)
 
-## 🏃‍♂️ Running the Application
+## Running the Application
 
 ### Start Backend Server
 ```bash
@@ -79,12 +79,12 @@ npm start
 
 After starting the frontend, choose your platform:
 
-- **📱 Mobile Device**: Scan QR code with Expo Go app
-- **🤖 Android**: Press `a` (requires Android Studio/emulator)
-- **🍎 iOS**: Press `i` (requires Xcode/simulator, macOS only)
-- **🌐 Web**: Press `w` (runs in browser)
+- ** Mobile Device**: Scan QR code with Expo Go app
+- ** Android**: Press `a` (requires Android Studio/emulator)
+- ** iOS**: Press `i` (requires Xcode/simulator, macOS only)
+- ** Web**: Press `w` (runs in browser)
 
-## 🛠️ Development Commands
+## Development Commands
 
 ### Frontend (lang-learning-app/)
 ```bash
@@ -101,7 +101,7 @@ npm run reset-project  # Clear cache and reset
 npm start          # Start Express server
 ```
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
