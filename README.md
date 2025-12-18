@@ -17,7 +17,7 @@ An app that utilises AI to predict, teach and test learners of a new language at
 - Backend: Node.js, Express**
 - AI: DeepSeek v3.2, OpenRouter (Unified LLM Integration)
 
-### Installation
+## Installation
 
 1. **Clone the repository**
    ```bash
