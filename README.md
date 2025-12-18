@@ -1,146 +1,108 @@
-# LangAI - An AI Language Predictor App
+##🚀 Quick Start
+Prerequisites
+Node.js (v18 or higher)
+npm or yarn
+Expo CLI: npm install -g @expo/cli
+Mobile device with Expo Go app OR Android Studio/Xcode for simulators
+Installation
+Clone the repository
 
-A React Native language learning application that uses AI to predict the next words users might want to type, helping them learn languages through contextual suggestions and interactive lessons.
+git clone <repository-url>
+cd ai-language-predictor
+Install backend dependencies
 
-### Core Value Proposition
-- **Predictive Learning**: AI suggests next words as users type, accelerating language acquisition
-- **Contextual Intelligence**: Adapts suggestions based on tone, difficulty level, and conversation scenarios
-- **Gamified Progress**: XP system, streaks, and achievements motivate consistent practice
-- **Spaced Repetition**: Smart review system ensures long-term retention of learned phrases
+cd lang-learning-backend
+npm install
+Install frontend dependencies
 
-### Target Users
-- Language learners (A1-C2 levels)
-- Students seeking interactive practice tools
-- Professionals needing conversational skills in specific contexts (business, travel, medical)
+cd ../lang-learning-app
+npm install
+Environment Setup
+Configure backend API keys
 
-### Key Features
-- Real-time word prediction with confidence scoring
-- Multi-language support (10+ languages)
-- Tone-aware translations (casual, formal, humorous, academic, sarcastic)
-- Scenario-based learning (restaurant, travel, business, medical)
-- Spaced repetition flashcard system
-- Interactive grammar lessons with AI-generated quizzes
-- Progress tracking with activity heatmaps
-- Offline caching for improved performance
+cd ../lang-learning-backend
+cp .env.example .env  # If example exists, or create new .env
+Edit .env and add your API keys:
 
-### Monetization Strategy (To be Implemented)
-- Freemium model with daily prediction limits
-- Premium subscriptions for unlimited access
-- Language pack purchases
-- XP boosters and cosmetic upgrades
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+PORT=3000
+Configure frontend API URL (if needed)
 
+cd ../lang-learning-app
+Check constants/config.ts and update the API base URL if running on a different port or host:
 
+export const API_BASE_URL = 'http://localhost:3000';
+Getting API Keys
+DeepSeek API: Sign up at DeepSeek Platform
+OpenRouter API: Sign up at OpenRouter (fallback provider)
+🏃‍♂️ Running the Application
+Start Backend Server
+cd lang-learning-backend
+npm start
+Server will run on http://localhost:3000
 
+Start Frontend App
+cd lang-learning-app
+npm start
+Platform Options
+After starting the frontend, choose your platform:
 
-## Project Structure & Organization
-
-## Root Directory Layout
-```
+📱 Mobile Device: Scan QR code with Expo Go app
+🤖 Android: Press a (requires Android Studio/emulator)
+🍎 iOS: Press i (requires Xcode/simulator, macOS only)
+🌐 Web: Press w (runs in browser)
+📱 Features
+Real-time AI Predictions: Type and get intelligent word suggestions
+Multi-language Support: Learn Japanese, Spanish, French, and more
+Interactive Lessons: AI-generated quizzes with spaced repetition
+Conversation Mode: Practice with AI chat partner
+Progress Tracking: XP system, streaks, and analytics
+Offline Support: Cached lessons work without internet
+🛠️ Development Commands
+Frontend (lang-learning-app/)
+npm start          # Start development server
+npm run android    # Run on Android
+npm run ios        # Run on iOS
+npm run web        # Run on web
+npm run lint       # Check code quality
+npm run reset-project  # Clear cache and reset
+Backend (lang-learning-backend/)
+npm start          # Start Express server
+npm run dev        # Start with nodemon (if configured)
+🏗️ Project Structure
 ├── lang-learning-app/          # React Native frontend
+│   ├── app/(tabs)/            # Main navigation screens
+│   ├── components/            # Reusable UI components
+│   ├── constants/             # Configuration and themes
+│   ├── hooks/                 # Custom React hooks
+│   └── db.ts                  # SQLite database operations
 ├── lang-learning-backend/      # Node.js API server
-├── requirements.txt            # Python dependencies (if any)
-├── TODO & Req.txt             # Project requirements and roadmap
-└── AI suggested UI improvements and key features.txt  # Enhancement proposals
-```
+│   ├── server.js              # Express server with AI endpoints
+│   ├── .env                   # Environment variables (API keys)
+│   └── package.json           # Dependencies and scripts
+🔧 Troubleshooting
+Common Issues
+"Network request failed"
 
-## Frontend Structure (`lang-learning-app/`)
+Ensure backend server is running on http://localhost:3000
+Check constants/config.ts for correct API URL
+On mobile: Use your computer's IP address instead of localhost
+"Missing API Key" errors
 
-### Core Application
-```
-app/
-├── (tabs)/                     # Tab-based navigation screens
-│   ├── index.tsx              # Main predictor interface
-│   ├── explore.tsx            # Learning hub with lessons/flashcards
-│   ├── chat.tsx               # Conversation mode
-│   ├── dashboard.tsx          # Progress analytics
-│   ├── profile.tsx            # User settings
-│   └── _layout.tsx            # Tab navigation configuration
-├── modal.tsx                  # Modal screens
-└── _layout.tsx                # Root layout with theme provider
-```
+Verify .env file exists in lang-learning-backend/
+Check API keys are valid and properly formatted
+Restart backend server after adding keys
+Expo/Metro bundler issues
 
-### Components & UI
-```
-components/
-├── ui/                        # Reusable UI components
-│   ├── collapsible.tsx        # Expandable sections
-│   ├── icon-symbol.tsx        # Cross-platform icons
-│   └── icon-symbol.ios.tsx    # iOS-specific icons
-├── SkillTree.tsx              # Gamification progress tree
-├── themed-text.tsx            # Theme-aware text component
-├── themed-view.tsx            # Theme-aware view component
-├── parallax-scroll-view.tsx   # Animated scroll container
-└── [other components]         # Feature-specific components
-```
+cd lang-learning-app
+npm run reset-project
+npm start --clear
+SQLite errors on web
 
-### Configuration & Constants
-```
-constants/
-├── config.ts                  # API URLs and app configuration
-└── theme.ts                   # Color schemes, typography, spacing
-```
-
-### Data & Utilities
-```
-├── db.ts                      # SQLite database operations (native)
-├── db.web.ts                  # Web-compatible database fallback
-└── hooks/                     # Custom React hooks
-    ├── use-color-scheme.ts    # Theme detection
-    └── use-theme-color.ts     # Dynamic theming
-```
-
-## Backend Structure (`lang-learning-backend/`)
-```
-├── server.js                  # Express server with AI endpoints
-├── package.json               # Dependencies and scripts
-├── .env                       # Environment variables (API keys)
-└── node_modules/              # Dependencies
-```
-
-## Key File Conventions
-
-### Screen Components
-- Located in `app/(tabs)/` for main navigation screens
-- Use TypeScript with React Native components
-- Follow naming pattern: `[feature].tsx`
-- Export default function with PascalCase name
-
-### Database Operations
-- `db.ts`: Native SQLite operations using expo-sqlite
-- `db.web.ts`: Web fallback using AsyncStorage
-- Functions use camelCase naming (e.g., `addPhrase`, `getPhrasesForReview`)
-
-### Theming & Styling
-- All styles use the centralized theme system from `constants/theme.ts`
-- Color references use `Colors["light"]` or `Colors["dark"]`
-- Consistent spacing using `Spacing` scale
-- Platform-aware shadows and fonts
-
-### API Integration
-- Backend endpoints follow REST conventions: `/api/[resource]`
-- Frontend uses fetch with proper error handling
-- Caching implemented at multiple levels (SQLite, AsyncStorage)
-- Circuit breaker pattern for AI provider fallback
-
-## Data Flow Patterns
-
-### User Input → AI Prediction
-1. User types in main input field (`index.tsx`)
-2. Smart trigger logic determines when to call API
-3. Cache check before API call (`db.ts`)
-4. API call with fallback handling (`server.js`)
-5. Response cached and displayed with animations
-
-### Spaced Repetition System
-1. Phrases saved to SQLite with SRS metadata
-2. Review scheduler calculates due dates
-3. `explore.tsx` displays due cards
-4. User ratings update SRS intervals
-5. Progress tracked in analytics
-
-### Lesson Generation
-1. Dynamic lesson requests to `/api/lessons`
-2. AI generates structured quiz content
-3. Lessons cached locally for offline access
-4. Progress tracked and XP awarded
-5. Completion triggers level progression checks
+Web version uses AsyncStorage fallback
+Some features may be limited in browser
+Getting Help
+Check the console logs in both frontend and backend terminals
+Ensure all dependencies are installed with npm install
+Try clearing caches with reset commands above
