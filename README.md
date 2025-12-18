@@ -1,6 +1,6 @@
 # LangAI - An AI Language Predictor App
 
-A app that utilises AI to predict, teach and test 
+A app that utilises AI to predict, teach and test learners of a new language at different stages of learning.
 
 ##  Quick Start
 
