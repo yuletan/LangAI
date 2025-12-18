@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import * as Crypto from "expo-crypto";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const CONVERSATIONS_KEY = "saved_conversations";
 
 export interface CacheRow {
   hash_key: string;
@@ -339,28 +342,117 @@ export const saveConversation = async (
   language: string,
   messages: any[]
 ): Promise<number | null> => {
-  const { data, error } = await supabase.from('conversations').insert({
-    scenario,
-    language,
-    messages_json: JSON.stringify(messages),
-    created_at: Date.now()
-  }).select('id').single();
+  try {
+    // Try Supabase first
+    const { data, error } = await supabase.from('conversations').insert({
+      scenario,
+      language,
+      messages_json: JSON.stringify(messages),
+      created_at: Date.now()
+    }).select('id').single();
 
-  if (error) {
-    console.error("Supabase save conversation error:", error);
+    if (!error && data?.id) {
+      return data.id;
+    }
+  } catch (e) {
+    console.log("Supabase save failed, using AsyncStorage fallback");
+  }
+
+  // Fallback to AsyncStorage
+  try {
+    const existing = await AsyncStorage.getItem(CONVERSATIONS_KEY);
+    const conversations: ConversationRow[] = existing ? JSON.parse(existing) : [];
+    const newId = Date.now();
+    const newConversation: ConversationRow = {
+      id: newId,
+      scenario,
+      language,
+      messages_json: JSON.stringify(messages),
+      created_at: Date.now()
+    };
+    conversations.unshift(newConversation);
+    await AsyncStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations.slice(0, 50))); // Keep last 50
+    console.log("✅ Conversation saved to AsyncStorage");
+    return newId;
+  } catch (asyncError) {
+    console.error("AsyncStorage save conversation error:", asyncError);
     return null;
   }
-  return data?.id || null;
 };
 
 export const getConversations = async (): Promise<ConversationRow[]> => {
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    // Try Supabase first
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-  if (error) return [];
-  return data || [];
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+  } catch (e) {
+    console.log("Supabase get failed, using AsyncStorage fallback");
+  }
+
+  // Fallback to AsyncStorage
+  try {
+    const existing = await AsyncStorage.getItem(CONVERSATIONS_KEY);
+    return existing ? JSON.parse(existing) : [];
+  } catch (asyncError) {
+    console.error("AsyncStorage get conversations error:", asyncError);
+    return [];
+  }
+};
+
+export const updateConversation = async (
+  id: number,
+  messages: any[]
+): Promise<boolean> => {
+  console.log("📝 Updating conversation ID:", id, "with", messages.length, "messages");
+  
+  try {
+    // Try Supabase first
+    const { data, error } = await supabase
+      .from('conversations')
+      .update({ 
+        messages_json: JSON.stringify(messages),
+        created_at: Date.now() // Update timestamp
+      })
+      .eq('id', id)
+      .select();
+
+    if (!error) {
+      console.log("✅ Conversation updated in Supabase, rows affected:", data?.length || 0);
+      return true;
+    } else {
+      console.log("⚠️ Supabase update error:", error.message);
+    }
+  } catch (e) {
+    console.log("Supabase update failed:", e);
+  }
+
+  // Fallback to AsyncStorage
+  try {
+    const existing = await AsyncStorage.getItem(CONVERSATIONS_KEY);
+    const conversations: ConversationRow[] = existing ? JSON.parse(existing) : [];
+    const index = conversations.findIndex(c => c.id === id);
+    
+    console.log("AsyncStorage fallback - found index:", index, "for ID:", id);
+    
+    if (index !== -1) {
+      conversations[index].messages_json = JSON.stringify(messages);
+      conversations[index].created_at = Date.now();
+      await AsyncStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+      console.log("✅ Conversation updated in AsyncStorage");
+      return true;
+    }
+    console.log("⚠️ Conversation not found in AsyncStorage");
+    return false;
+  } catch (asyncError) {
+    console.error("AsyncStorage update conversation error:", asyncError);
+    return false;
+  }
 };
 
 export const findCachedResponse = async (
@@ -368,18 +460,40 @@ export const findCachedResponse = async (
   scenario: string,
   language: string
 ): Promise<any | null> => {
-  const { data: convos, error } = await supabase
-    .from('conversations')
-    .select('messages_json')
-    .eq('scenario', scenario)
-    .eq('language', language)
-    .order('created_at', { ascending: false })
-    .limit(5);
+  let convos: any[] = [];
 
-  if (error || !convos) return null;
+  try {
+    // Try Supabase first
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('messages_json')
+      .eq('scenario', scenario)
+      .eq('language', language)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (!error && data) {
+      convos = data;
+    }
+  } catch (e) {
+    console.log("Supabase cache lookup failed, trying AsyncStorage");
+  }
+
+  // Fallback to AsyncStorage if Supabase returned nothing
+  if (convos.length === 0) {
+    try {
+      const existing = await AsyncStorage.getItem(CONVERSATIONS_KEY);
+      const allConvos: ConversationRow[] = existing ? JSON.parse(existing) : [];
+      convos = allConvos
+        .filter(c => c.scenario === scenario && c.language === language)
+        .slice(0, 5);
+    } catch (asyncError) {
+      console.log("AsyncStorage cache lookup error:", asyncError);
+    }
+  }
 
   for (const c of convos) {
-    const messages = JSON.parse(c.messages_json);
+    const messages = typeof c.messages_json === 'string' ? JSON.parse(c.messages_json) : c.messages_json;
     for (let i = 0; i < messages.length - 1; i++) {
       if (
         messages[i].role === "user" &&

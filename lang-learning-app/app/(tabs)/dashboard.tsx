@@ -49,11 +49,11 @@ export default function DashboardScreen() {
   
   // Simulated leaderboard data
   const leaderboard = [
-    { rank: 1, name: "SpanishMaster", xp: 12500, avatar: "🥇" },
-    { rank: 2, name: "PolyglotPro", xp: 11200, avatar: "🥈" },
-    { rank: 3, name: "LinguaLover", xp: 9800, avatar: "🥉" },
+    { rank: 1, name: "Player 1", xp: 12500, avatar: "🥇" },
+    { rank: 2, name: "Player 2", xp: 11200, avatar: "🥈" },
+    { rank: 3, name: "Player 3", xp: 9800, avatar: "🥉" },
     { rank: 4, name: "You", xp: xp, avatar: "👤", isUser: true },
-    { rank: 5, name: "WordWizard", xp: Math.max(xp - 500, 100), avatar: "🧙" },
+    { rank: 5, name: "Player 4", xp: Math.max(xp - 500, 100), avatar: "🧙" },
   ].sort((a, b) => b.xp - a.xp).map((u, i) => ({ ...u, rank: i + 1 }));
 
   useFocusEffect(
@@ -624,12 +624,12 @@ export default function DashboardScreen() {
                 <View style={[styles.chartContainer, { backgroundColor: colors.cardBackground }]}>
                   <LineChart
                     data={lineData}
-                    width={Math.min(windowWidth - 80, 320)} // Responsive width with max limit
-                    height={180} // Reduced height for mobile
-                    spacing={Math.max(25, (windowWidth - 120) / Math.max(lineData.length, 1))} // Better spacing
-                    initialSpacing={15}
-                    endSpacing={15}
-                    thickness={2}
+                    width={windowWidth - 100} // Full width minus padding
+                    height={220} // Taller chart
+                    spacing={(windowWidth - 140) / Math.max(lineData.length - 1, 1)} // Evenly distribute points
+                    initialSpacing={20}
+                    endSpacing={20}
+                    thickness={3}
                     color="#3b82f6"
                     startFillColor="rgba(59, 130, 246, 0.3)"
                     endFillColor="rgba(59, 130, 246, 0.05)"
@@ -637,23 +637,24 @@ export default function DashboardScreen() {
                     curved
                     hideDataPoints={false}
                     dataPointsColor="#3b82f6"
-                    dataPointsRadius={4} // Smaller points for mobile
+                    dataPointsRadius={6}
                     textColor1={colors.icon}
-                    textShiftY={-6}
-                    textShiftX={-3}
-                    textFontSize={10} // Smaller text for mobile
-                    hideRules
+                    textShiftY={-8}
+                    textShiftX={-5}
+                    textFontSize={11}
+                    hideRules={false}
+                    rulesType="solid"
                     yAxisColor={colors.icon + "40"}
                     xAxisColor={colors.icon + "40"}
-                    yAxisTextStyle={{ color: colors.icon, fontSize: 9 }}
-                    xAxisLabelTextStyle={{ color: colors.icon, fontSize: 9 }}
-                    noOfSections={3} // Fewer sections for mobile
+                    yAxisTextStyle={{ color: colors.icon, fontSize: 10 }}
+                    xAxisLabelTextStyle={{ color: colors.icon, fontSize: 10 }}
+                    noOfSections={4}
                     maxValue={100}
                     yAxisLabelPrefix=""
                     yAxisLabelSuffix="%"
                     showVerticalLines={false}
                     verticalLinesColor={colors.icon + "20"}
-                    rulesColor={colors.icon + "20"}
+                    rulesColor={colors.icon + "15"}
                     yAxisThickness={1}
                     xAxisThickness={1}
                   />
@@ -830,12 +831,15 @@ const styles = StyleSheet.create({
   trendSummaryLabel: { fontSize: 11, marginBottom: Spacing.xs },
   trendSummaryValue: { fontSize: 20, fontWeight: "bold" },
   chartContainer: { 
-    padding: Platform.OS === 'web' ? Spacing.lg : Spacing.md, 
+    padding: Spacing.lg, 
     borderRadius: Radius.md, 
     marginTop: Spacing.sm, 
     ...Shadows.sm, 
     alignItems: "center",
-    overflow: "hidden" // Prevent chart overflow on mobile
+    justifyContent: "center",
+    width: "100%",
+    minHeight: 280,
+    overflow: "hidden",
   },
   trendContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 140, paddingTop: Spacing.md },
   trendBar: { flex: 1, alignItems: "center" },

@@ -283,7 +283,7 @@ Output JSON ONLY:
   "suggestions": ["possible user reply 1", "possible user reply 2"]
 }`;
 
-    const { json, usedSource } = await generateWithRetry(prompt, 300, "Chat");
+    const { json, usedSource } = await generateWithRetry(prompt, 400, "Chat");
 
     json._meta = {
       source: usedSource,

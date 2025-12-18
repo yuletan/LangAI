@@ -19,7 +19,7 @@ import * as Haptics from "expo-haptics";
 import * as Speech from "expo-speech";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
-import { recordActivity, saveConversation, getConversations, findCachedResponse } from "@/db";
+import { recordActivity, saveConversation, getConversations, findCachedResponse, updateConversation } from "@/db";
 import { API_BASE_URL } from "@/constants/config";
 
 const API_URL = `${API_BASE_URL}/chat`;
@@ -43,13 +43,25 @@ const SCENARIOS = [
 ];
 
 const LANGUAGES = [
+  { label: "English", value: "English", code: "en-US" },
   { label: "Spanish", value: "Spanish", code: "es-ES" },
   { label: "French", value: "French", code: "fr-FR" },
   { label: "German", value: "German", code: "de-DE" },
   { label: "Italian", value: "Italian", code: "it-IT" },
   { label: "Portuguese", value: "Portuguese", code: "pt-BR" },
+  { label: "Russian", value: "Russian", code: "ru-RU" },
+  { label: "Chinese", value: "Chinese", code: "zh-CN" },
   { label: "Japanese", value: "Japanese", code: "ja-JP" },
+  { label: "Korean", value: "Korean", code: "ko-KR" },
 ];
+
+interface SavedConversation {
+  id: number;
+  scenario: string;
+  language: string;
+  messages_json: string;
+  created_at: number;
+}
 
 export default function ChatScreen() {
   const { colors, theme } = useTheme();
@@ -59,14 +71,100 @@ export default function ChatScreen() {
   const [selectedScenario, setSelectedScenario] = useState(SCENARIOS[0]);
   const [selectedLanguage, setSelectedLanguage] = useState(LANGUAGES[0]);
   const [showSettings, setShowSettings] = useState(true);
+  const [recentConversations, setRecentConversations] = useState<SavedConversation[]>([]);
+  const [loadingConvos, setLoadingConvos] = useState(false);
+  const [currentConvoId, setCurrentConvoId] = useState<number | null>(null); // Track if continuing a saved convo
   const scrollViewRef = useRef<ScrollView>(null);
+  const lastSaveTimeRef = useRef<number>(0); // Track last save time for debouncing
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce timer
   
-  // Load default language on mount
+  // Load default language and recent conversations on mount
   useFocusEffect(
     useCallback(() => {
       loadDefaultLanguage();
+      loadRecentConversations();
     }, [])
   );
+
+  const loadRecentConversations = async () => {
+    setLoadingConvos(true);
+    try {
+      const convos = await getConversations();
+      setRecentConversations(convos.slice(0, 3)); // Get last 3
+    } catch (e) {
+      console.log("Error loading conversations", e);
+    } finally {
+      setLoadingConvos(false);
+    }
+  };
+
+  const continueConversation = (convo: SavedConversation) => {
+    try {
+      const parsedMessages = typeof convo.messages_json === 'string' 
+        ? JSON.parse(convo.messages_json) 
+        : convo.messages_json;
+      
+      // Find matching scenario and language
+      const scenarioObj = SCENARIOS.find(s => s.value === convo.scenario) || SCENARIOS[0];
+      const langObj = LANGUAGES.find(l => l.value === convo.language) || LANGUAGES[0];
+      
+      setSelectedScenario(scenarioObj);
+      setSelectedLanguage(langObj);
+      setMessages(parsedMessages);
+      setCurrentConvoId(convo.id); // Track the conversation ID for updates
+      setShowSettings(false);
+      
+      if (Platform.OS !== "web") {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+    } catch (e) {
+      console.error("Error loading conversation", e);
+      Alert.alert("Error", "Could not load this conversation");
+    }
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getConvoPreview = (convo: SavedConversation): string => {
+    try {
+      const msgs = typeof convo.messages_json === 'string' 
+        ? JSON.parse(convo.messages_json) 
+        : convo.messages_json;
+      const lastUserMsg = [...msgs].reverse().find((m: Message) => m.role === "user");
+      if (lastUserMsg) {
+        return lastUserMsg.content.length > 40 
+          ? lastUserMsg.content.substring(0, 40) + "..." 
+          : lastUserMsg.content;
+      }
+      return "No messages";
+    } catch {
+      return "...";
+    }
+  };
+
+  const getScenarioIcon = (scenarioValue: string) => {
+    const scenario = SCENARIOS.find(s => s.value === scenarioValue);
+    return scenario?.icon || "chatbubbles-outline";
+  };
+
+  const getScenarioColor = (scenarioValue: string) => {
+    const scenario = SCENARIOS.find(s => s.value === scenarioValue);
+    return scenario?.color || "#8b5cf6";
+  };
+
+  const getScenarioLabel = (scenarioValue: string) => {
+    const scenario = SCENARIOS.find(s => s.value === scenarioValue);
+    return scenario?.label || "Chat";
+  };
 
   const loadDefaultLanguage = async () => {
     try {
@@ -86,8 +184,31 @@ export default function ChatScreen() {
     }
   }, [messages]);
 
+  // Auto-save conversation every 5 seconds when in a chat (silent save)
+  useEffect(() => {
+    if (!showSettings && messages.length > 2) {
+      // Clear existing timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      // Set new timeout for auto-save
+      saveTimeoutRef.current = setTimeout(() => {
+        console.log("🔄 Auto-saving conversation...");
+        saveCurrentConversation(false); // false = no alert
+      }, 5000);
+    }
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [messages, showSettings]);
+
   const startConversation = () => {
     setShowSettings(false);
+    setCurrentConvoId(null); // Reset - this is a new conversation
     // Add initial AI greeting
     const greeting: Message = {
       id: Date.now().toString(),
@@ -101,14 +222,18 @@ export default function ChatScreen() {
 
   const getInitialGreeting = () => {
     const greetings: { [key: string]: string } = {
+      English: "Hello! I'm here to help you practice English. What would you like to talk about?",
       Spanish: "¡Hola! Estoy aquí para ayudarte a practicar español. ¿De qué te gustaría hablar?",
       French: "Bonjour! Je suis là pour vous aider à pratiquer le français. De quoi aimeriez-vous parler?",
       German: "Hallo! Ich bin hier, um Ihnen beim Deutschüben zu helfen. Worüber möchten Sie sprechen?",
       Italian: "Ciao! Sono qui per aiutarti a praticare l'italiano. Di cosa vorresti parlare?",
       Portuguese: "Olá! Estou aqui para ajudá-lo a praticar português. Sobre o que você gostaria de falar?",
+      Russian: "Привет! Я здесь, чтобы помочь вам практиковать русский язык. О чём бы вы хотели поговорить?",
+      Chinese: "你好！我在这里帮助你练习中文。你想聊什么？",
       Japanese: "こんにちは！日本語の練習をお手伝いします。何について話したいですか？",
+      Korean: "안녕하세요! 한국어 연습을 도와드리겠습니다. 무엇에 대해 이야기하고 싶으세요?",
     };
-    return greetings[selectedLanguage.value] || greetings.Spanish;
+    return greetings[selectedLanguage.value] || greetings.English;
   };
 
   const getInitialGreetingTranslation = () => {
@@ -201,42 +326,86 @@ export default function ChatScreen() {
     });
   };
 
-  const saveCurrentConversation = async () => {
+  const saveCurrentConversation = async (showAlert: boolean = true) => {
     if (messages.length < 2) return;
     
+    // Debounce: only save if 2 seconds have passed since last save
+    const now = Date.now();
+    const timeSinceLastSave = now - lastSaveTimeRef.current;
+    
+    if (timeSinceLastSave < 2000) {
+      console.log("⏱️ Save debounced - only", timeSinceLastSave, "ms since last save");
+      return;
+    }
+    
+    // Clear any pending save timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
     try {
-      await saveConversation(selectedScenario.value, selectedLanguage.value, messages);
-      Alert.alert("Saved", "Conversation saved to history!");
+      console.log("💾 Saving conversation, currentConvoId:", currentConvoId);
+      lastSaveTimeRef.current = now;
+      
+      if (currentConvoId) {
+        // Update existing conversation
+        const success = await updateConversation(currentConvoId, messages);
+        console.log("Update result:", success);
+        if (showAlert) Alert.alert("Updated", "Conversation updated!");
+      } else {
+        // Save as new conversation
+        const newId = await saveConversation(selectedScenario.value, selectedLanguage.value, messages);
+        console.log("New conversation saved with ID:", newId);
+        if (newId) setCurrentConvoId(newId);
+        if (showAlert) Alert.alert("Saved", "Conversation saved to history!");
+      }
+      
+      // Reload conversations list
+      await loadRecentConversations();
+      
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (e) {
       console.error("Failed to save chat", e);
-      Alert.alert("Error", "Could not save conversation.");
+      if (showAlert) Alert.alert("Error", "Could not save conversation.");
     }
   };
 
   const resetChat = () => {
-    if (messages.length > 2) {
-      Alert.alert(
-        "End Conversation?",
-        "Do you want to save this chat before exiting?",
-        [
-          { text: "Discard", style: "destructive", onPress: () => {
-            setMessages([]);
-            setShowSettings(true);
-          }},
-          { text: "Save & Exit", onPress: async () => {
-            await saveCurrentConversation();
-            setMessages([]);
-            setShowSettings(true);
-          }},
-          { text: "Cancel", style: "cancel" }
-        ]
-      );
-    } else {
+    const goBack = () => {
       setMessages([]);
+      setCurrentConvoId(null);
       setShowSettings(true);
+    };
+
+    const saveAndGoBack = async () => {
+      await saveCurrentConversation();
+      setMessages([]);
+      setCurrentConvoId(null);
+      setShowSettings(true);
+    };
+
+    if (messages.length > 2) {
+      if (Platform.OS === "web" && typeof globalThis.confirm === "function") {
+        if (globalThis.confirm("Do you want to save this chat before exiting?")) {
+          saveAndGoBack();
+        } else {
+          goBack();
+        }
+      } else {
+        Alert.alert(
+          "End Conversation?",
+          "Do you want to save this chat before exiting?",
+          [
+            { text: "Discard", style: "destructive", onPress: goBack },
+            { text: "Save & Exit", onPress: saveAndGoBack },
+            { text: "Cancel", style: "cancel" }
+          ]
+        );
+      }
+    } else {
+      goBack();
     }
   };
 
@@ -255,8 +424,54 @@ export default function ChatScreen() {
             Chat with an AI partner to improve your speaking skills
           </Text>
 
+          {/* Recent Conversations Section */}
+          {recentConversations.length > 0 && (
+            <>
+              <Text style={[styles.settingsLabel, { color: colors.text }]}>
+                📝 Continue Recent Chat
+              </Text>
+              <View style={styles.recentConvosContainer}>
+                {loadingConvos ? (
+                  <ActivityIndicator size="small" color={colors.tint} />
+                ) : (
+                  recentConversations.map((convo) => (
+                    <TouchableOpacity
+                      key={convo.id}
+                      style={[
+                        styles.recentConvoCard,
+                        { 
+                          backgroundColor: theme === "dark" ? "#1e293b" : "#f8fafc",
+                          borderColor: theme === "dark" ? "#334155" : "#e2e8f0",
+                        }
+                      ]}
+                      onPress={() => continueConversation(convo)}
+                    >
+                      <View style={[styles.recentConvoIcon, { backgroundColor: getScenarioColor(convo.scenario) }]}>
+                        <Ionicons name={getScenarioIcon(convo.scenario) as any} size={20} color="#fff" />
+                      </View>
+                      <View style={styles.recentConvoInfo}>
+                        <View style={styles.recentConvoHeader}>
+                          <Text style={[styles.recentConvoTitle, { color: colors.text }]}>
+                            {convo.language} • {getScenarioLabel(convo.scenario)}
+                          </Text>
+                          <Text style={[styles.recentConvoDate, { color: colors.icon }]}>
+                            {formatDate(convo.created_at)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.recentConvoPreview, { color: colors.icon }]} numberOfLines={1}>
+                          {getConvoPreview(convo)}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={colors.icon} />
+                    </TouchableOpacity>
+                  ))
+                )}
+              </View>
+            </>
+          )}
+
           <Text style={[styles.settingsLabel, { color: colors.text }]}>
-            Select Language
+            🌍 Select Language
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionScroll}>
             {LANGUAGES.map((lang) => (
@@ -264,7 +479,8 @@ export default function ChatScreen() {
                 key={lang.value}
                 style={[
                   styles.langChip,
-                  selectedLanguage.value === lang.value && { backgroundColor: colors.tint },
+                  { borderColor: theme === "dark" ? "#334155" : "#ddd" },
+                  selectedLanguage.value === lang.value && { backgroundColor: colors.tint, borderColor: colors.tint },
                 ]}
                 onPress={() => setSelectedLanguage(lang)}
               >
@@ -281,7 +497,7 @@ export default function ChatScreen() {
           </ScrollView>
 
           <Text style={[styles.settingsLabel, { color: colors.text }]}>
-            Choose a Scenario
+            🎯 Choose a Scenario
           </Text>
           <View style={styles.scenarioGrid}>
             {SCENARIOS.map((scenario) => (
@@ -311,8 +527,8 @@ export default function ChatScreen() {
             style={[styles.startButton, { backgroundColor: colors.tint }]}
             onPress={startConversation}
           >
-            <Ionicons name="chatbubbles" size={20} color="#fff" />
-            <Text style={styles.startButtonText}>Start Conversation</Text>
+            <Ionicons name="add-circle" size={20} color="#fff" />
+            <Text style={styles.startButtonText}>Start New Conversation</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -330,7 +546,7 @@ export default function ChatScreen() {
           <Text style={styles.headerTitle}>{selectedLanguage.label} Practice</Text>
           <Text style={styles.headerSubtitle}>{selectedScenario.label}</Text>
         </View>
-        <TouchableOpacity onPress={saveCurrentConversation} style={styles.headerButton}>
+        <TouchableOpacity onPress={() => saveCurrentConversation(true)} style={styles.headerButton}>
           <Ionicons name="save-outline" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -353,7 +569,7 @@ export default function ChatScreen() {
                   styles.messageBubble,
                   message.role === "user"
                     ? [styles.userBubble, { backgroundColor: colors.tint }]
-                    : [styles.aiBubble, { backgroundColor: "#f3f4f6" }],
+                    : [styles.aiBubble, { backgroundColor: theme === "dark" ? "#1e293b" : "#f3f4f6" }],
                 ]}
               >
                 <Text
@@ -388,10 +604,10 @@ export default function ChatScreen() {
               {message.corrections && message.corrections.length > 0 && (
                 <View style={styles.correctionsContainer}>
                   {message.corrections.map((correction, idx) => (
-                    <View key={idx} style={styles.correctionCard}>
+                    <View key={idx} style={[styles.correctionCard, { backgroundColor: theme === "dark" ? "#422006" : "#fef3c7" }]}>
                       <View style={styles.correctionHeader}>
                         <Ionicons name="school" size={14} color="#f59e0b" />
-                        <Text style={styles.correctionTitle}>Correction</Text>
+                        <Text style={[styles.correctionTitle, { color: theme === "dark" ? "#fbbf24" : "#b45309" }]}>Correction</Text>
                       </View>
                       <View style={styles.correctionContent}>
                         <Text style={styles.correctionWrong}>
@@ -400,7 +616,7 @@ export default function ChatScreen() {
                         <Ionicons name="arrow-forward" size={14} color="#22c55e" />
                         <Text style={styles.correctionCorrect}>{correction.correct}</Text>
                       </View>
-                      <Text style={styles.correctionTip}>{correction.tip}</Text>
+                      <Text style={[styles.correctionTip, { color: theme === "dark" ? "#fcd34d" : "#92400e" }]}>{correction.tip}</Text>
                     </View>
                   ))}
                 </View>
@@ -409,7 +625,7 @@ export default function ChatScreen() {
           ))}
 
           {isLoading && (
-            <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: "#f3f4f6" }]}>
+            <View style={[styles.messageBubble, styles.aiBubble, { backgroundColor: theme === "dark" ? "#1e293b" : "#f3f4f6" }]}>
               <View style={styles.typingIndicator}>
                 <ActivityIndicator size="small" color={colors.tint} />
                 <Text style={[styles.typingText, { color: colors.icon }]}>Typing...</Text>
@@ -419,9 +635,9 @@ export default function ChatScreen() {
         </ScrollView>
 
         {/* Input Area */}
-        <View style={[styles.inputContainer, { backgroundColor: colors.background }]}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.background, borderTopColor: theme === "dark" ? "#334155" : "#e5e7eb" }]}>
           <TextInput
-            style={[styles.input, { backgroundColor: "#f3f4f6", color: colors.text }]}
+            style={[styles.input, { backgroundColor: theme === "dark" ? "#1e293b" : "#f3f4f6", color: colors.text }]}
             value={inputText}
             onChangeText={setInputText}
             placeholder={`Type in ${selectedLanguage.label} or English...`}
@@ -450,9 +666,37 @@ const styles = StyleSheet.create({
   settingsScrollView: { flex: 1 },
   settingsContainer: { padding: 25, paddingTop: 60, paddingBottom: 40 },
   settingsTitle: { fontSize: 28, fontWeight: "bold", marginBottom: 8 },
-  settingsSubtitle: { fontSize: 16, marginBottom: 30 },
+  settingsSubtitle: { fontSize: 16, marginBottom: 20 },
   settingsLabel: { fontSize: 16, fontWeight: "600", marginBottom: 12, marginTop: 20 },
   optionScroll: { marginBottom: 10 },
+  // Recent Conversations Styles
+  recentConvosContainer: { gap: 10, marginBottom: 10 },
+  recentConvoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  recentConvoIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recentConvoInfo: { flex: 1 },
+  recentConvoHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  recentConvoTitle: { fontSize: 14, fontWeight: "600" },
+  recentConvoDate: { fontSize: 12 },
+  recentConvoPreview: { fontSize: 13 },
+  // Language Chips
   langChip: {
     paddingHorizontal: 18,
     paddingVertical: 10,

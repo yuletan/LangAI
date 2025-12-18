@@ -501,6 +501,24 @@ export const getConversations = async (): Promise<ConversationRow[]> => {
   }
 };
 
+export const updateConversation = async (
+  id: number,
+  messages: any[]
+): Promise<boolean> => {
+  if (!db) return false;
+  try {
+    await db.runAsync(
+      "UPDATE conversations SET messages_json = ?, created_at = ? WHERE id = ?",
+      [JSON.stringify(messages), Date.now(), id]
+    );
+    console.log("✅ Conversation updated in SQLite");
+    return true;
+  } catch (e) {
+    console.error("Update conversation error:", e);
+    return false;
+  }
+};
+
 /**
  * Finds a similar cached response from previous conversations.
  * Simple exact match on user message for now.

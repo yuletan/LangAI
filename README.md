@@ -2,6 +2,130 @@
 
 A React Native language learning application that uses AI to predict the next words users might want to type, helping them learn languages through contextual suggestions and interactive lessons.
 
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** (v18 or higher)
+- **npm** or **yarn**
+- **Expo CLI**: `npm install -g @expo/cli`
+- **Mobile device** with Expo Go app OR **Android Studio/Xcode** for simulators
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd langai
+   ```
+
+2. **Install backend dependencies**
+   ```bash
+   cd lang-learning-backend
+   npm install
+   ```
+
+3. **Install frontend dependencies**
+   ```bash
+   cd ../lang-learning-app
+   npm install
+   ```
+
+### Environment Setup
+
+4. **Configure backend API keys**
+   ```bash
+   cd ../lang-learning-backend
+   ```
+   
+   Create a `.env` file and add your API keys:
+   ```env
+   DEEPSEEK_API_KEY=your_deepseek_api_key_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   PORT=3000
+   ```
+
+5. **Configure frontend API URL** (if needed)
+   ```bash
+   cd ../lang-learning-app
+   ```
+   
+   Check `constants/config.ts` and update the API base URL if running on a different port or host:
+   ```typescript
+   export const API_BASE_URL = 'http://localhost:3000';
+   ```
+
+### Getting API Keys
+
+- **DeepSeek API**: Sign up at [DeepSeek Platform](https://platform.deepseek.com/)
+- **OpenRouter API**: Sign up at [OpenRouter](https://openrouter.ai/) (fallback provider)
+
+## 🏃‍♂️ Running the Application
+
+### Start Backend Server
+```bash
+cd lang-learning-backend
+npm start
+```
+Server will run on `http://localhost:3000`
+
+### Start Frontend App
+```bash
+cd lang-learning-app
+npm start
+```
+
+### Platform Options
+
+After starting the frontend, choose your platform:
+
+- **📱 Mobile Device**: Scan QR code with Expo Go app
+- **🤖 Android**: Press `a` (requires Android Studio/emulator)
+- **🍎 iOS**: Press `i` (requires Xcode/simulator, macOS only)
+- **🌐 Web**: Press `w` (runs in browser)
+
+## 🛠️ Development Commands
+
+### Frontend (lang-learning-app/)
+```bash
+npm start          # Start development server
+npm run android    # Run on Android
+npm run ios        # Run on iOS
+npm run web        # Run on web
+npm run lint       # Check code quality
+npm run reset-project  # Clear cache and reset
+```
+
+### Backend (lang-learning-backend/)
+```bash
+npm start          # Start Express server
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **"Network request failed"**
+   - Ensure backend server is running on `http://localhost:3000`
+   - Check `constants/config.ts` for correct API URL
+   - On mobile: Use your computer's IP address instead of localhost
+
+2. **"Missing API Key" errors**
+   - Verify `.env` file exists in `lang-learning-backend/`
+   - Check API keys are valid and properly formatted
+   - Restart backend server after adding keys
+
+3. **Expo/Metro bundler issues**
+   ```bash
+   cd lang-learning-app
+   npm run reset-project
+   npm start --clear
+   ```
+
+4. **SQLite errors on web**
+   - Web version uses AsyncStorage fallback
+   - Some features may be limited in browser
+
 ### Core Value Proposition
 - **Predictive Learning**: AI suggests next words as users type, accelerating language acquisition
 - **Contextual Intelligence**: Adapts suggestions based on tone, difficulty level, and conversation scenarios
