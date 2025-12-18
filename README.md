@@ -13,9 +13,9 @@ An app that utilises AI to predict, teach and test learners of a new language at
 
 ## Tech Stack
 
--**Frontend: React Native (Expo), TypeScript, SQLite**
--**Backend: Node.js, Express**
--**AI: DeepSeek v3.2, OpenRouter (Unified LLM Integration)**
+- Frontend: React Native (Expo), TypeScript, SQLite
+- Backend: Node.js, Express**
+- AI: DeepSeek v3.2, OpenRouter (Unified LLM Integration)
 
 ### Installation
 
@@ -85,10 +85,10 @@ npm start
 
 After starting the frontend, choose your platform:
 
-- ** Mobile Device**: Scan QR code with Expo Go app
-- ** Android**: Press `a` (requires Android Studio/emulator)
-- ** iOS**: Press `i` (requires Xcode/simulator, macOS only)
-- ** Web**: Press `w` (runs in browser)
+-  Mobile Device: Scan QR code with Expo Go app
+-  Android: Press `a` (requires Android Studio/emulator)
+-  iOS: Press `i` (requires Xcode/simulator, macOS only)
+-  Web: Press `w` (runs in browser)
 
 ## Development Commands
 
