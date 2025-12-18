@@ -11,6 +11,12 @@ An app that utilises AI to predict, teach and test learners of a new language at
 - **Expo CLI**: `npm install -g @expo/cli`
 - **Mobile device** with Expo Go app OR **Android Studio/Xcode** for simulators
 
+## Tech Stack
+
+-**Frontend: React Native (Expo), TypeScript, SQLite**
+-**Backend: Node.js, Express**
+-**AI: DeepSeek v3.2, OpenRouter (Unified LLM Integration)**
+
 ### Installation
 
 1. **Clone the repository**
