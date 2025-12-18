@@ -1317,7 +1317,10 @@ export default function ExploreScreen() {
                               style={[
                                 styles.quizOption, 
                                 styles.quizOptionFlex,
-                                { borderColor: colors.icon + "30" },
+                                { 
+                                  borderColor: colors.icon + "30",
+                                  backgroundColor: colors.background
+                                },
                                 isAnswered && idx === currentQuestion.correct_index && styles.correctOption,
                                 isAnswered && selectedAnswer === idx && idx !== currentQuestion.correct_index && styles.wrongOption
                               ]}
@@ -1330,11 +1333,6 @@ export default function ExploreScreen() {
                               {typeof opt === 'object' && opt.reading && (
                                 <Text style={[styles.readingGuide, { color: "#a855f7" }]}>
                                   ({opt.reading})
-                                </Text>
-                              )}
-                              {typeof opt === 'object' && opt.english && (
-                                <Text style={[styles.bilingualEnglish, { color: colors.icon }]}>
-                                  {opt.english}
                                 </Text>
                               )}
                               {isAnswered && idx === currentQuestion.correct_index && (
@@ -1696,7 +1694,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: "#fff",
   },
   quizOptionFlex: { flex: 1 },
   saveOptionBtn: {

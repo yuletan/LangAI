@@ -385,16 +385,16 @@ Output JSON ONLY (no markdown):
       "question_english": "English translation",
       "question_reading": "romanization",
       "options": [
-        {"target": "option text", "english": "translation", "reading": "romanization", "explanation": "1 sentence why correct/wrong", "use_case": "short example"},
-        {"target": "...", "english": "...", "reading": "..."},
-        {"target": "...", "english": "...", "reading": "..."}
+        {"target": "option text", "reading": "romanization", "explanation": "1 sentence why correct/wrong", "use_case": "short example"},
+        {"target": "...", "reading": "..."},
+        {"target": "...", "reading": "..."}
       ],
       "correct_index": 0
     },
-    {"question": "Q2", "question_english": "...", "question_reading": "...", "options": [{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0},
-    {"question": "Q3", "question_english": "...", "question_reading": "...", "options": [{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0},
-    {"question": "Q4", "question_english": "...", "question_reading": "...", "options": [{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0},
-    {"question": "Q5", "question_english": "...", "question_reading": "...", "options": [{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","english":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0}
+    {"question": "Q2", "question_english": "...", "question_reading": "...", "options": [{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0},
+    {"question": "Q3", "question_english": "...", "question_reading": "...", "options": [{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0},
+    {"question": "Q4", "question_english": "...", "question_reading": "...", "options": [{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0},
+    {"question": "Q5", "question_english": "...", "question_reading": "...", "options": [{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."},{"target":"...","reading":"...","explanation":"...","use_case":"..."}], "correct_index": 0}
   ]
 }`;
 
