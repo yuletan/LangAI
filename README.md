@@ -1,6 +1,136 @@
 # LangAI - An AI Language Predictor App
 
-A React Native language learning application that uses AI to predict the next words users might want to type, helping them learn languages through contextual suggestions and interactive lessons.
+An app that utilises AI to predict, teach and test learners of a new language at different stages of learning.
+
+##  Quick Start
+
+### Prerequisites
+
+- **Node.js** (v18 or higher)
+- **npm** or **yarn**
+- **Expo CLI**: `npm install -g @expo/cli`
+- **Mobile device** with Expo Go app OR **Android Studio/Xcode** for simulators
+
+## Tech Stack
+
+- Frontend: React Native (Expo), TypeScript, SQLite
+- Backend: Node.js, Express**
+- AI: DeepSeek v3.2, OpenRouter (Unified LLM Integration)
+
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd langai
+   ```
+
+2. **Install backend dependencies**
+   ```bash
+   cd lang-learning-backend
+   npm install
+   ```
+
+3. **Install frontend dependencies**
+   ```bash
+   cd ../lang-learning-app
+   npm install
+   ```
+
+### Environment Setup
+
+4. **Configure backend API keys**
+   ```bash
+   cd ../lang-learning-backend
+   ```
+   
+   Create a `.env` file and add your API keys:
+   ```env
+   DEEPSEEK_API_KEY=your_deepseek_api_key_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   PORT=3000
+   ```
+
+5. **Configure frontend API URL** (if needed)
+   ```bash
+   cd ../lang-learning-app
+   ```
+   
+   Check `constants/config.ts` and update the API base URL if running on a different port or host:
+   ```typescript
+   export const API_BASE_URL = 'http://localhost:3000';
+   ```
+
+### Getting API Keys
+
+- **DeepSeek API**: Sign up at [DeepSeek Platform](https://platform.deepseek.com/)
+- **OpenRouter API**: Sign up at [OpenRouter](https://openrouter.ai/) (fallback provider)
+
+## Running the Application
+
+### Start Backend Server
+```bash
+cd lang-learning-backend
+npm start
+```
+Server will run on `http://localhost:3000`
+
+### Start Frontend App
+```bash
+cd lang-learning-app
+npm start
+```
+
+### Platform Options
+
+After starting the frontend, choose your platform:
+
+-  Mobile Device: Scan QR code with Expo Go app
+-  Android: Press `a` (requires Android Studio/emulator)
+-  iOS: Press `i` (requires Xcode/simulator, macOS only)
+-  Web: Press `w` (runs in browser)
+
+## Development Commands
+
+### Frontend (lang-learning-app/)
+```bash
+npm start          # Start development server
+npm run android    # Run on Android
+npm run ios        # Run on iOS
+npm run web        # Run on web
+npm run lint       # Check code quality
+npm run reset-project  # Clear cache and reset
+```
+
+### Backend (lang-learning-backend/)
+```bash
+npm start          # Start Express server
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Network request failed"**
+   - Ensure backend server is running on `http://localhost:3000`
+   - Check `constants/config.ts` for correct API URL
+   - On mobile: Use your computer's IP address instead of localhost
+
+2. **"Missing API Key" errors**
+   - Verify `.env` file exists in `lang-learning-backend/`
+   - Check API keys are valid and properly formatted
+   - Restart backend server after adding keys
+
+3. **Expo/Metro bundler issues**
+   ```bash
+   cd lang-learning-app
+   npm run reset-project
+   npm start --clear
+   ```
+
+4. **SQLite errors on web**
+   - Web version uses AsyncStorage fallback
+   - Some features may be limited in browser
 
 ## 🚀 Quick Start
 
@@ -245,26 +375,3 @@ constants/
 - Frontend uses fetch with proper error handling
 - Caching implemented at multiple levels (SQLite, AsyncStorage)
 - Circuit breaker pattern for AI provider fallback
-
-## Data Flow Patterns
-
-### User Input → AI Prediction
-1. User types in main input field (`index.tsx`)
-2. Smart trigger logic determines when to call API
-3. Cache check before API call (`db.ts`)
-4. API call with fallback handling (`server.js`)
-5. Response cached and displayed with animations
-
-### Spaced Repetition System
-1. Phrases saved to SQLite with SRS metadata
-2. Review scheduler calculates due dates
-3. `explore.tsx` displays due cards
-4. User ratings update SRS intervals
-5. Progress tracked in analytics
-
-### Lesson Generation
-1. Dynamic lesson requests to `/api/lessons`
-2. AI generates structured quiz content
-3. Lessons cached locally for offline access
-4. Progress tracked and XP awarded
-5. Completion triggers level progression checks
