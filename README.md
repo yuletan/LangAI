@@ -2,7 +2,7 @@
 
 An app that utilises AI to predict, teach and test learners of a new language at different stages of learning.
 
-### Video Link:
+### Video Link of all the features:
 
 -[PC (Windows)](https://example.com)
 -[Mobile (Android)](https://example.com)
