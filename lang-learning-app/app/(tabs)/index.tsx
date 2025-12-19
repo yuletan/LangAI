@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomPicker from "@/components/CustomPicker";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Radius, Shadows } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
@@ -63,16 +64,16 @@ interface SavedPhrase {
 }
 
 const LANGUAGES = [
-  { label: "English", value: "English", code: "en-US" },
-  { label: "Spanish", value: "Spanish", code: "es-ES" },
-  { label: "French", value: "French", code: "fr-FR" },
-  { label: "German", value: "German", code: "de-DE" },
-  { label: "Italian", value: "Italian", code: "it-IT" },
-  { label: "Portuguese", value: "Portuguese", code: "pt-BR" },
-  { label: "Russian", value: "Russian", code: "ru-RU" },
-  { label: "Chinese", value: "Chinese", code: "zh-CN" },
-  { label: "Japanese", value: "Japanese", code: "ja-JP" },
-  { label: "Korean", value: "Korean", code: "ko-KR" },
+  { label: "English", displayLabel: "EN", value: "English", code: "en-US" },
+  { label: "Spanish", displayLabel: "ES", value: "Spanish", code: "es-ES" },
+  { label: "French", displayLabel: "FR", value: "French", code: "fr-FR" },
+  { label: "German", displayLabel: "DE", value: "German", code: "de-DE" },
+  { label: "Italian", displayLabel: "IT", value: "Italian", code: "it-IT" },
+  { label: "Portuguese", displayLabel: "PT", value: "Portuguese", code: "pt-BR" },
+  { label: "Russian", displayLabel: "RU", value: "Russian", code: "ru-RU" },
+  { label: "Chinese", displayLabel: "ZH", value: "Chinese", code: "zh-CN" },
+  { label: "Japanese", displayLabel: "JA", value: "Japanese", code: "ja-JP" },
+  { label: "Korean", displayLabel: "KO", value: "Korean", code: "ko-KR" },
 ];
 
 const TONES = [
@@ -84,21 +85,21 @@ const TONES = [
 ];
 
 const CEFR_LEVELS = [
-  { label: "A1 (Beginner)", value: "A1" },
-  { label: "A2 (Elementary)", value: "A2" },
-  { label: "B1 (Intermediate)", value: "B1" },
-  { label: "B2 (Upper Intermediate)", value: "B2" },
-  { label: "C1 (Advanced)", value: "C1" },
-  { label: "C2 (Proficient)", value: "C2" },
+  { label: "A1", value: "A1" },
+  { label: "A2", value: "A2" },
+  { label: "B1", value: "B1" },
+  { label: "B2", value: "B2" },
+  { label: "C1", value: "C1" },
+  { label: "C2", value: "C2" },
 ];
 
 const SCENARIOS = [
   { label: "General", value: "" },
-  { label: "🍽️ Restaurant", value: "ordering food at a restaurant" },
-  { label: "✈️ Travel", value: "traveling and asking for directions" },
-  { label: "💼 Business", value: "professional business meeting" },
-  { label: "🏥 Medical", value: "visiting a doctor" },
-  { label: "🛍️ Shopping", value: "shopping at a store" },
+  { label: "Restaurant", value: "ordering food at a restaurant" },
+  { label: "Travel", value: "traveling and asking for directions" },
+  { label: "Business", value: "professional business meeting" },
+  { label: "Medical", value: "visiting a doctor" },
+  { label: "Shopping", value: "shopping at a store" },
 ];
 
 export default function App() {
@@ -655,24 +656,12 @@ export default function App() {
               <Text style={[styles.selectorLabel, { color: colors.text }]}>
                 From
               </Text>
-              <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Picker
-                  selectedValue={inputLang}
-                  onValueChange={setInputLang}
-                  style={[styles.picker, { color: colors.text, backgroundColor: colors.background }] as any}
-                  itemStyle={{ color: colors.text }}
-                  dropdownIconColor={colors.text}
-                >
-                  {LANGUAGES.map((lang) => (
-                    <Picker.Item
-                      key={lang.value}
-                      label={lang.label}
-                      value={lang.value}
-                      color={colors.text}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              <CustomPicker
+                selectedValue={inputLang}
+                onValueChange={setInputLang}
+                options={LANGUAGES.map(l => ({ label: l.label, displayLabel: l.displayLabel, value: l.value }))}
+                theme={theme}
+              />
             </View>
             
             {/* Language Swap Button */}
@@ -694,24 +683,12 @@ export default function App() {
               <Text style={[styles.selectorLabel, { color: colors.text }]}>
                 To
               </Text>
-              <View style={[styles.pickerContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Picker
-                  selectedValue={outputLang}
-                  onValueChange={setOutputLang}
-                  style={[styles.picker, { color: colors.text, backgroundColor: colors.background }] as any}
-                  itemStyle={{ color: colors.text }}
-                  dropdownIconColor={colors.text}
-                >
-                  {LANGUAGES.map((lang) => (
-                    <Picker.Item
-                      key={lang.value}
-                      label={lang.label}
-                      value={lang.value}
-                      color={colors.text}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              <CustomPicker
+                selectedValue={outputLang}
+                onValueChange={setOutputLang}
+                options={LANGUAGES.map(l => ({ label: l.label, displayLabel: l.displayLabel, value: l.value }))}
+                theme={theme}
+              />
             </View>
           </View>
 
@@ -765,47 +742,23 @@ export default function App() {
               <Text style={[styles.settingLabel, { color: colors.icon }]}>
                 Level
               </Text>
-              <View style={[styles.pickerWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Picker
-                  selectedValue={cefrLevel}
-                  onValueChange={setCefrLevel}
-                  style={[styles.pickerSmall, { color: colors.text, backgroundColor: colors.background }] as any}
-                  itemStyle={{ color: colors.text }}
-                  dropdownIconColor={colors.text}
-                >
-                  {CEFR_LEVELS.map((lvl) => (
-                    <Picker.Item
-                      key={lvl.value}
-                      label={lvl.label}
-                      value={lvl.value}
-                      color={colors.text}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              <CustomPicker
+                selectedValue={cefrLevel}
+                onValueChange={setCefrLevel}
+                options={CEFR_LEVELS}
+                theme={theme}
+              />
             </View>
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, { color: colors.icon }]}>
                 Scenario
               </Text>
-              <View style={[styles.pickerWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Picker
-                  selectedValue={scenario}
-                  onValueChange={setScenario}
-                  style={[styles.pickerSmall, { color: colors.text, backgroundColor: colors.background }] as any}
-                  itemStyle={{ color: colors.text }}
-                  dropdownIconColor={colors.text}
-                >
-                  {SCENARIOS.map((s) => (
-                    <Picker.Item 
-                      key={s.value} 
-                      label={s.label} 
-                      value={s.value} 
-                      color={colors.text}
-                    />
-                  ))}
-                </Picker>
-              </View>
+              <CustomPicker
+                selectedValue={scenario}
+                onValueChange={setScenario}
+                options={SCENARIOS}
+                theme={theme}
+              />
             </View>
           </View>
 
