@@ -4,9 +4,9 @@ An app that utilises AI to predict, teach and test learners of a new language at
 
 ### Video Link:
 
-[PC (Windows)](https://example.com)
-[Mobile (Android](https://example.com)
-No IOS video
+-[PC (Windows)](https://example.com)
+-[Mobile (Android)](https://example.com)
+-No IOS video
 
 ##  Quick Start
 
