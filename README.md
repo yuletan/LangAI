@@ -4,8 +4,8 @@ An app that utilises AI to predict, teach and test learners of a new language at
 
 ### Video link of all the features:
 
--[PC (Windows)](https://example.com)
--[Mobile (Android)](https://example.com)
+-[PC (Windows)](https://youtu.be/LTBpR0OPziM?si=5mNa0nW0LYSpqNFZ)
+-[Mobile (Android)](https://youtu.be/YHzG9Xh9fmA?si=lPYBZ_x0VGnxZQx1)
 -No IOS video
 
 ##  Quick Start
