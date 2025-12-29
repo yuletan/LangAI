@@ -9,7 +9,7 @@ import { Platform } from 'react-native';
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#4fc3f7';
 
-// Extended color palette
+// Extended color palette with login-specific tokens
 export const Colors = {
   light: {
     text: '#11181C',
@@ -26,6 +26,19 @@ export const Colors = {
     cardBackground: '#f8fafc',
     border: '#e2e8f0',
     muted: '#94a3b8',
+    // Login-specific color tokens
+    loginBackground: '#f8fafc',
+    loginCardBackground: 'rgba(255, 255, 255, 0.95)',
+    loginCardBorder: 'rgba(226, 232, 240, 0.8)',
+    loginInputBackground: 'rgba(248, 250, 252, 0.9)',
+    loginInputBorder: '#e2e8f0',
+    loginInputFocusBorder: tintColorLight,
+    loginAccent: tintColorLight,
+    loginAccentHover: '#0891b2',
+    loginAccentGlow: 'rgba(10, 126, 164, 0.3)',
+    loginTextPrimary: '#11181C',
+    loginTextSecondary: '#64748b',
+    loginTextMuted: '#94a3b8',
   },
   dark: {
     text: '#ECEDEE',
@@ -42,6 +55,19 @@ export const Colors = {
     cardBackground: '#1e293b',
     border: '#334155',
     muted: '#64748b',
+    // Login-specific color tokens
+    loginBackground: '#0f172a',
+    loginCardBackground: 'rgba(30, 41, 59, 0.8)',
+    loginCardBorder: 'rgba(51, 65, 85, 0.6)',
+    loginInputBackground: 'rgba(30, 41, 59, 0.6)',
+    loginInputBorder: '#334155',
+    loginInputFocusBorder: tintColorDark,
+    loginAccent: tintColorDark,
+    loginAccentHover: '#22d3ee',
+    loginAccentGlow: 'rgba(79, 195, 247, 0.4)',
+    loginTextPrimary: '#ECEDEE',
+    loginTextSecondary: '#94a3b8',
+    loginTextMuted: '#64748b',
   },
 };
 
@@ -71,6 +97,92 @@ export const ToneGradients = {
     colors: ['#43e97b', '#38f9d7'],
     start: { x: 0, y: 0 },
     end: { x: 1, y: 1 },
+  },
+};
+
+// Login-specific gradients
+export const LoginGradients = {
+  light: {
+    background: {
+      colors: ['#f8fafc', '#e2e8f0'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 1 },
+    },
+    primaryButton: {
+      colors: ['#0a7ea4', '#0891b2'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 0 },
+    },
+    accent: {
+      colors: ['#0a7ea4', '#22d3ee'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 1 },
+    },
+  },
+  dark: {
+    background: {
+      colors: ['#0f172a', '#1e293b'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 1 },
+    },
+    primaryButton: {
+      colors: ['#4fc3f7', '#22d3ee'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 0 },
+    },
+    accent: {
+      colors: ['#4fc3f7', '#0ea5e9'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 1 },
+    },
+    floatingBlob1: {
+      colors: ['rgba(79, 195, 247, 0.1)', 'rgba(34, 211, 238, 0.05)'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 1 },
+    },
+    floatingBlob2: {
+      colors: ['rgba(34, 211, 238, 0.08)', 'rgba(79, 195, 247, 0.03)'],
+      start: { x: 0, y: 0 },
+      end: { x: 1, y: 1 },
+    },
+  },
+};
+
+// Glassmorphism style configurations
+export const GlassmorphismStyles = {
+  light: {
+    card: {
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      borderColor: 'rgba(226, 232, 240, 0.8)',
+      borderWidth: 1,
+    },
+    input: {
+      backgroundColor: 'rgba(248, 250, 252, 0.9)',
+      borderColor: 'rgba(226, 232, 240, 0.8)',
+      borderWidth: 1,
+    },
+    button: {
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      borderColor: 'rgba(226, 232, 240, 0.6)',
+      borderWidth: 1,
+    },
+  },
+  dark: {
+    card: {
+      backgroundColor: 'rgba(30, 41, 59, 0.8)',
+      borderColor: 'rgba(51, 65, 85, 0.6)',
+      borderWidth: 1,
+    },
+    input: {
+      backgroundColor: 'rgba(30, 41, 59, 0.6)',
+      borderColor: 'rgba(51, 65, 85, 0.8)',
+      borderWidth: 1,
+    },
+    button: {
+      backgroundColor: 'rgba(30, 41, 59, 0.7)',
+      borderColor: 'rgba(51, 65, 85, 0.5)',
+      borderWidth: 1,
+    },
   },
 };
 
@@ -200,4 +312,33 @@ export const Animations = {
   fast: 150,
   normal: 300,
   slow: 500,
+};
+
+// Login-specific animation configurations
+export const LoginAnimations = {
+  focusTransition: {
+    duration: 200,
+    easing: 'ease-out',
+    useNativeDriver: false,
+  },
+  buttonPress: {
+    duration: 150,
+    easing: 'ease-in-out',
+    useNativeDriver: true,
+  },
+  themeTransition: {
+    duration: 300,
+    easing: 'ease-in-out',
+    useNativeDriver: false,
+  },
+  floatingBlob: {
+    duration: 4000,
+    easing: 'linear',
+    useNativeDriver: true,
+  },
+  loadingSpinner: {
+    duration: 1000,
+    easing: 'linear',
+    useNativeDriver: true,
+  },
 };

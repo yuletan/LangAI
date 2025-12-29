@@ -1,12 +1,15 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '@/constants/theme';
+import { Colors, LoginGradients, GlassmorphismStyles, LoginAnimations } from '@/constants/theme';
 
 export type ThemeMode = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: ThemeMode;
   colors: typeof Colors.light;
+  loginGradients: typeof LoginGradients.light;
+  glassmorphism: typeof GlassmorphismStyles.light;
+  loginAnimations: typeof LoginAnimations;
   toggleTheme: () => void;
   setTheme: (theme: ThemeMode) => void;
 }
@@ -54,10 +57,16 @@ export const useThemeManager = () => {
   };
 
   const colors = Colors[theme];
+  const loginGradients = LoginGradients[theme];
+  const glassmorphism = GlassmorphismStyles[theme];
+  const loginAnimations = LoginAnimations;
 
   return {
     theme,
     colors,
+    loginGradients,
+    glassmorphism,
+    loginAnimations,
     toggleTheme,
     setTheme,
   };

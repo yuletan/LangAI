@@ -8,10 +8,13 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  Alert,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Spacing, Radius, Shadows } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useAuth } from "@/contexts/auth-context";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   getUserProfile,
@@ -45,11 +48,62 @@ const BADGES_SAFE = BADGES || FALLBACK_BADGES;
 
 export default function ProfileScreen() {
   const { colors, theme } = useTheme();
+  const { signOut, user } = useAuth();
   const [profile, setProfile] = useState<UserProfileRow | null>(null);
   const [unlockedBadges, setUnlockedBadges] = useState<AchievementRow[]>([]);
   const [challenges, setChallenges] = useState<ChallengeRow[]>([]);
   const [stats, setStats] = useState({ totalActivities: 0, totalDays: 0, currentStreak: 0 });
   const [xpProgress, setXpProgress] = useState({ needed: 100, progress: 0 });
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    console.log('Logout button pressed');
+    
+    // On web, use globalThis.confirm for better compatibility
+    if (Platform.OS === 'web') {
+      const confirmed = globalThis.confirm?.('Are you sure you want to sign out?');
+      if (confirmed) {
+        setLoggingOut(true);
+        try {
+          console.log('Calling signOut...');
+          await signOut();
+          console.log('SignOut completed');
+        } catch (error) {
+          console.error('SignOut error:', error);
+          globalThis.alert?.('Failed to sign out. Please try again.');
+        } finally {
+          setLoggingOut(false);
+        }
+      }
+      return;
+    }
+    
+    // Native platforms use Alert.alert
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            setLoggingOut(true);
+            try {
+              console.log('Calling signOut...');
+              await signOut();
+              console.log('SignOut completed');
+            } catch (error) {
+              console.error('SignOut error:', error);
+              Alert.alert("Error", "Failed to sign out. Please try again.");
+            } finally {
+              setLoggingOut(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -124,7 +178,23 @@ export default function ProfileScreen() {
             <Text style={[styles.subtitle, { color: colors.icon }]}>
               Level {profile?.current_level || 1} • {profile?.total_xp || 0} XP
             </Text>
+            {user?.email && (
+              <Text style={[styles.email, { color: colors.muted }]} numberOfLines={1}>
+                {user.email}
+              </Text>
+            )}
           </View>
+          <TouchableOpacity
+            style={[styles.logoutButton, { backgroundColor: colors.cardBackground }]}
+            onPress={handleLogout}
+            disabled={loggingOut}
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={22}
+              color={colors.error}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* XP Progress Bar */}
@@ -308,6 +378,17 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     marginTop: 2,
+  },
+  email: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  logoutButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
   xpSection: {
     paddingHorizontal: 20,
