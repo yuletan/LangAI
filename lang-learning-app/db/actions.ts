@@ -1,8 +1,10 @@
 import { db } from "./client";
-import { phrases, userStats, conversations, achievements, challenges, userProfile, lessonCache, apiCache } from "./schema";
-import { eq, lte, and, desc, sql } from "drizzle-orm";
+import { phrases, userStats, conversations, achievements, challenges, userProfile, lessonCache, apiCache, cefrProfile, Phrase as PhraseRow, Achievement as AchievementRow, Challenge as ChallengeRow, UserProfile as UserProfileRow, UserCEFRProfile as UserCEFRProfileRow } from "./schema";
+export { PhraseRow, AchievementRow, ChallengeRow, UserProfileRow, UserCEFRProfileRow };
+import { eq, lte, and, desc, sql, gt } from "drizzle-orm";
 import { calculateNextReview } from "../services/srsAlgorithm";
-import { calculateLevel } from "../services/gamification";
+import { calculateLevel, getXPForNextLevel } from "../services/gamification";
+export { calculateLevel, getXPForNextLevel };
 
 // --- Cache Functions ---
 
@@ -17,6 +19,42 @@ export const checkCache = async (key: string) => {
     console.error("Cache check error:", e);
     return null;
   }
+};
+export const findCachedResponse = async (text: string, scenario: string, language: string) => {
+  const key = await generateCacheKey(text, "User", language, scenario);
+  return checkCache(key);
+};
+
+export const initDB = async () => {
+  // Drizzle handles initialization via the client/provider.
+  // However, we enforce the creation of the cefr_profile table to ensure it exists
+  // even if migrations haven't run perfectly on the device.
+  try {
+    const rawDb = db.$client; // Access underlying Expo SQLite database
+    await rawDb.execAsync(`
+      CREATE TABLE IF NOT EXISTS cefr_profile (
+        id INTEGER PRIMARY KEY DEFAULT 1,
+        overall_level TEXT DEFAULT 'A1',
+        skills_json TEXT NOT NULL,
+        placement_history_json TEXT DEFAULT '[]',
+        last_assessed INTEGER,
+        updated_at INTEGER
+      );
+    `);
+    console.log("🗄️ Database initialized & cefr_profile checked");
+  } catch (e) {
+    console.error("Manual table creation failed", e);
+  }
+  return true;
+};
+
+export const generateCacheKey = async (
+  text: string,
+  inputLang: string,
+  outputLang: string,
+  tone: string
+) => {
+  return `${text.trim().toLowerCase()}_${inputLang}_${outputLang}_${tone}`;
 };
 
 export const saveToCache = async (key: string, data: any) => {
@@ -61,6 +99,20 @@ export const addPhrase = async (
     console.error("Add phrase error:", e);
     return null;
   }
+};
+
+export const addPhraseWithDetails = async (
+  original: string,
+  translated: string,
+  pronunciation: string = "",
+  explanation: string = "",
+  useCase: string = ""
+) => {
+  // Currently schema doesn't support explanation/useCase, 
+  // so we log them and fallback to standard addPhrase.
+  // We can add them to schema later if needed.
+  console.log(`📝 Saving phrase with details (details currently ignored in DB): ${explanation}, ${useCase}`);
+  return addPhrase(original, translated, pronunciation);
 };
 
 export const getPhrasesForReview = async () => {
@@ -162,6 +214,49 @@ export const getStatsByType = async () => {
   }
 };
 
+export const getTotalStats = async (): Promise<{
+  totalActivities: number;
+  totalDays: number;
+  currentStreak: number;
+}> => {
+  try {
+    const allStats = await db.select().from(userStats);
+    const totalActivities = allStats.length;
+    
+    const uniqueDays = new Set(allStats.map(s => s.date));
+    const totalDays = uniqueDays.size;
+    
+    // Streak calculation
+    let currentStreak = 0;
+    const sortedDates = Array.from(uniqueDays).sort().reverse();
+    const today = new Date().toISOString().split("T")[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    
+    if (sortedDates.length > 0) {
+      let checkDate = sortedDates[0] === today ? today : sortedDates[0] === yesterday ? yesterday : null;
+      
+      if (checkDate) {
+        let i = 0;
+        let dateToCheck = new Date(checkDate);
+        while (true) {
+          const dateStr = dateToCheck.toISOString().split("T")[0];
+          if (uniqueDays.has(dateStr)) {
+            currentStreak++;
+            dateToCheck.setDate(dateToCheck.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+      }
+    }
+
+    return { totalActivities, totalDays, currentStreak };
+  } catch (e) {
+    console.error("Get total stats error:", e);
+    return { totalActivities: 0, totalDays: 0, currentStreak: 0 };
+  }
+};
+
 // --- Conversation Functions ---
 
 export const saveConversation = async (
@@ -232,6 +327,73 @@ export const getUnlockedAchievements = async () => {
   } catch (e) {
     console.error("Get achievements error:", e);
     return [];
+  }
+};
+
+// --- Challenge Functions ---
+
+export const getActiveChallenges = async (): Promise<ChallengeRow[]> => {
+  try {
+    const now = Date.now();
+    return await db.select()
+      .from(challenges)
+      .where(and(gt(challenges.expiresAt, now), eq(challenges.completed, 0)));
+  } catch (e) {
+    console.error("Get active challenges error:", e);
+    return [];
+  }
+};
+
+export const generateWeeklyChallenges = async (): Promise<void> => {
+  try {
+    const active = await getActiveChallenges();
+    if (active.length >= 3) return;
+
+    const now = Date.now();
+    const nextWeek = now + 7 * 24 * 60 * 60 * 1000;
+
+    const defaults = [
+      { title: "Translation Master", description: "Save 10 new phrases", goal: 10, type: "translations", xpReward: 100 },
+      { title: "Daily Learner", description: "Complete 5 grammar lessons", goal: 5, type: "lessons", xpReward: 150 },
+      { title: "Chatbox Hero", description: "Send 20 chat messages", goal: 20, type: "chat", xpReward: 120 }
+    ];
+
+    for (const challenge of defaults) {
+      await db.insert(challenges).values({
+        ...challenge as any,
+        progress: 0,
+        expiresAt: nextWeek,
+        completed: 0
+      }).onConflictDoNothing();
+    }
+  } catch (e) {
+    console.error("Generate weekly challenges error:", e);
+  }
+};
+
+export const updateChallengeProgress = async (type: "translations" | "lessons" | "streak" | "chat", increment: number = 1) => {
+  try {
+    const now = Date.now();
+    const active = await db.select()
+      .from(challenges)
+      .where(and(eq(challenges.type, type), gt(challenges.expiresAt, now), eq(challenges.completed, 0)));
+
+    for (const challenge of active) {
+      const newProgress = (challenge.progress ?? 0) + increment;
+      if (newProgress >= challenge.goal) {
+        await db.update(challenges)
+          .set({ progress: challenge.goal, completed: 1 })
+          .where(eq(challenges.id, challenge.id));
+        // Add XP reward
+        if (challenge.xpReward) await addXP(challenge.xpReward);
+      } else {
+        await db.update(challenges)
+          .set({ progress: newProgress })
+          .where(eq(challenges.id, challenge.id));
+      }
+    }
+  } catch (e) {
+    console.error("Update challenge error:", e);
   }
 };
 
@@ -320,6 +482,9 @@ export const getAccuracyTrend = async (days: number = 7) => {
   }
 };
 
+// CEFR Cache Version - Increment this when lesson structure changes
+const CEFR_CACHE_VERSION = "v2_cefr_strict";
+
 export const saveLessonToCache = async (
   topic: string,
   language: string,
@@ -327,11 +492,17 @@ export const saveLessonToCache = async (
   lessonData: any
 ) => {
   try {
+    // Inject version into the saved data wrapper
+    const wrappedData = {
+      _cacheVersion: CEFR_CACHE_VERSION,
+      data: lessonData
+    };
+    
     await db.insert(lessonCache).values({
       topic,
       language,
       level,
-      lessonJson: JSON.stringify(lessonData),
+      lessonJson: JSON.stringify(wrappedData), // Save wrapped data
       createdAt: Date.now(),
     });
   } catch (e) {
@@ -358,7 +529,22 @@ export const getRandomCachedLesson = async (
       .limit(1);
 
     if (result.length > 0) {
-      return JSON.parse(result[0].lessonJson);
+      try {
+        const parsed = JSON.parse(result[0].lessonJson);
+        // Check for version match
+        if (parsed._cacheVersion === CEFR_CACHE_VERSION) {
+          return parsed.data;
+        } else {
+          // If version mismatch (or undefined), consider it stale legacy data.
+          // Optionally delete it here, but filtering it out is safer for now.
+          console.log("⚠️ Stale/Legacy cache hit. Ignoring.");
+          return null;
+        }
+      } catch (parseError) {
+        // Fallback for old flat JSON format
+        console.log("⚠️ Failed to parse/validate cache version. Ignoring.");
+        return null;
+      }
     }
     return null;
   } catch (e) {
@@ -392,5 +578,83 @@ export const addXP = async (amount: number) => {
   } catch (e) {
     console.error("Add XP error:", e);
     return null;
+  }
+};
+
+export const resetAllProgress = async () => {
+  try {
+    await db.delete(userStats);
+    await db.delete(achievements);
+    await db.delete(challenges);
+    await db.delete(phrases);
+    await db.delete(conversations);
+    await db.delete(lessonCache);
+    await db.delete(apiCache);
+    await db.delete(userProfile);
+    
+    // Re-initialize profile
+    await getUserProfile();
+    return true;
+  } catch (e) {
+    console.error("Reset progress error:", e);
+    return false;
+  }
+};
+
+export const getCEFRProfile = async () => {
+  try {
+    const existing = await db.select().from(cefrProfile).limit(1);
+    if (!existing.length) {
+      const defaultSkills = {
+         listening: { level: "A1", confidence: 0.5 },
+         reading: { level: "A1", confidence: 0.5 },
+         speaking: { level: "A1", confidence: 0.5 },
+         writing: { level: "A1", confidence: 0.5 }
+      };
+      return {
+        overallLevel: "A1",
+        skills: defaultSkills,
+        placementHistory: []
+      };
+    }
+    
+    const data = existing[0];
+    return {
+      id: data.id,
+      overallLevel: data.overallLevel,
+      skills: typeof data.skillsJson === 'string' ? JSON.parse(data.skillsJson) : data.skillsJson,
+      placementHistory: typeof data.placementHistoryJson === 'string' ? JSON.parse(data.placementHistoryJson) : data.placementHistoryJson,
+      lastAssessed: data.lastAssessed,
+      updatedAt: data.updatedAt
+    };
+  } catch (e) {
+    console.error("Get CEFR profile error:", e);
+    return null;
+  }
+};
+
+export const updateCEFRProfile = async (profileData: any) => {
+  try {
+    const { skills, placementHistory, overallLevel } = profileData;
+    
+    const payload = {
+      overallLevel,
+      skillsJson: JSON.stringify(skills),
+      placementHistoryJson: JSON.stringify(placementHistory || []),
+      lastAssessed: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    const existing = await db.select().from(cefrProfile).limit(1);
+    
+    if (existing.length) {
+      await db.update(cefrProfile).set(payload).where(eq(cefrProfile.id, existing[0].id));
+    } else {
+      await db.insert(cefrProfile).values(payload);
+    }
+    return true;
+  } catch (e) {
+    console.error("Update CEFR profile error:", e);
+    return false;
   }
 };

@@ -24,11 +24,14 @@ import {
   getXPForNextLevel,
   generateWeeklyChallenges,
   calculateLevel,
+  resetAllProgress,
+  getCEFRProfile,
   BADGES,
-  AchievementRow,
-  ChallengeRow,
-  UserProfileRow,
+  Achievement,
+  Challenge,
+  UserProfile,
 } from "@/db";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -49,11 +52,12 @@ const BADGES_SAFE = BADGES || FALLBACK_BADGES;
 export default function ProfileScreen() {
   const { colors, theme } = useTheme();
   const { signOut, user } = useAuth();
-  const [profile, setProfile] = useState<UserProfileRow | null>(null);
-  const [unlockedBadges, setUnlockedBadges] = useState<AchievementRow[]>([]);
-  const [challenges, setChallenges] = useState<ChallengeRow[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [unlockedBadges, setUnlockedBadges] = useState<Achievement[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [stats, setStats] = useState({ totalActivities: 0, totalDays: 0, currentStreak: 0 });
   const [xpProgress, setXpProgress] = useState({ needed: 100, progress: 0 });
+  const [cefrProfile, setCefrProfile] = useState<any>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -105,6 +109,50 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleResetProgress = async () => {
+    const confirmationMessage = "Are you sure? This will wipe ALL your progress, history, and XP. This cannot be undone.";
+    
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(confirmationMessage)) {
+        await executeReset();
+      }
+      return;
+    }
+
+    Alert.alert(
+      "Reset All Progress?",
+      confirmationMessage,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Reset Everything", 
+          style: "destructive", 
+          onPress: executeReset 
+        }
+      ]
+    );
+  };
+
+  const executeReset = async () => {
+    try {
+      // Wipe database
+      await resetAllProgress();
+      // Wipe AsyncStorage
+      await AsyncStorage.clear();
+      
+      if (Platform.OS === 'web') {
+        globalThis.alert?.("All progress has been reset.");
+        window.location.reload();
+      } else {
+        Alert.alert("Success", "All progress has been reset.");
+        loadProfileData(); // Refresh UI
+      }
+    } catch (e) {
+      console.error("Reset failed", e);
+      if (Platform.OS === 'web') globalThis.alert?.("Failed to reset progress.");
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadProfileData();
@@ -112,12 +160,15 @@ export default function ProfileScreen() {
   );
 
   const loadProfileData = async () => {
-    const [profileData, achievements, activeChallenges, totalStats] = await Promise.all([
+    const [profileData, achievements, activeChallenges, totalStats, cefrData] = await Promise.all([
       getUserProfile(),
       getUnlockedAchievements(),
       getActiveChallenges(),
       getTotalStats(),
+      getCEFRProfile(),
     ]);
+
+    setCefrProfile(cefrData);
 
     // Also check AsyncStorage for XP (for web compatibility)
     let finalProfile = profileData;
@@ -127,14 +178,15 @@ export default function ProfileScreen() {
       if (savedXp) {
         const asyncXp = parseInt(savedXp, 10);
         // Use the higher value between SQLite and AsyncStorage
-        if (asyncXp > profileData.total_xp) {
+        if (asyncXp > (profileData?.totalXp || 0)) {
           // Recalculate level based on actual XP
           const calculatedLevel = calculateLevel(asyncXp);
           finalProfile = { 
             ...profileData, 
-            total_xp: asyncXp,
-            current_level: Math.max(calculatedLevel, profileData.current_level)
-          };
+            id: profileData?.id || 1,
+            totalXp: asyncXp,
+            currentLevel: Math.max(calculatedLevel, profileData?.currentLevel || 1)
+          } as UserProfile;
         }
       }
     } catch (e) {
@@ -142,16 +194,19 @@ export default function ProfileScreen() {
     }
 
     // Always recalculate level to ensure consistency
-    const correctLevel = calculateLevel(finalProfile.total_xp);
-    if (correctLevel !== finalProfile.current_level) {
-      finalProfile = { ...finalProfile, current_level: correctLevel };
+    const totalXp = finalProfile?.totalXp || 0;
+    const currentLevel = finalProfile?.currentLevel || 1;
+    const correctLevel = calculateLevel(totalXp);
+    
+    if (correctLevel !== currentLevel) {
+      finalProfile = { ...finalProfile, id: finalProfile?.id || 1, currentLevel: correctLevel } as UserProfile;
     }
 
     setProfile(finalProfile);
     setUnlockedBadges(achievements);
     setChallenges(activeChallenges);
     setStats(totalStats);
-    setXpProgress(getXPForNextLevel(finalProfile.total_xp, finalProfile.current_level));
+    setXpProgress(getXPForNextLevel(totalXp, correctLevel));
 
     // Generate challenges if needed
     await generateWeeklyChallenges();
@@ -160,7 +215,7 @@ export default function ProfileScreen() {
   };
 
   const isBadgeUnlocked = (badgeId: string) => {
-    return unlockedBadges.some((b) => b.badge_id === badgeId);
+    return unlockedBadges.some((b) => b.badgeId === badgeId);
   };
 
   const xpPercentage = xpProgress.needed > 0 ? (xpProgress.progress / xpProgress.needed) * 100 : 0;
@@ -171,12 +226,12 @@ export default function ProfileScreen() {
         {/* Header with Level */}
         <View style={styles.header}>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelNumber}>{profile?.current_level || 1}</Text>
+            <Text style={styles.levelNumber}>{profile?.currentLevel || 1}</Text>
           </View>
           <View style={styles.headerInfo}>
             <Text style={[styles.title, { color: colors.text }]}>Language Learner</Text>
             <Text style={[styles.subtitle, { color: colors.icon }]}>
-              Level {profile?.current_level || 1} • {profile?.total_xp || 0} XP
+              Level {profile?.currentLevel || 1} • {profile?.totalXp || 0} XP
             </Text>
             {user?.email && (
               <Text style={[styles.email, { color: colors.muted }]} numberOfLines={1}>
@@ -197,6 +252,26 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Danger Zone */}
+        <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+          <TouchableOpacity 
+            style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              backgroundColor: colors.error + '10', 
+              padding: 12, 
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: colors.error + '30'
+            }}
+            onPress={handleResetProgress}
+          >
+            <Ionicons name="refresh-circle" size={20} color={colors.error} style={{ marginRight: 8 }} />
+            <Text style={{ color: colors.error, fontWeight: 'bold' }}>Reset All Progress</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* XP Progress Bar */}
         <View style={styles.xpSection}>
           <View style={styles.xpLabels}>
@@ -209,7 +284,7 @@ export default function ProfileScreen() {
             <View style={[styles.xpBarFill, { width: `${Math.min(xpPercentage, 100)}%` }]} />
           </View>
           <Text style={[styles.xpHint, { color: colors.muted }]}>
-            {xpProgress.needed - xpProgress.progress} XP to Level {(profile?.current_level || 1) + 1}
+            {xpProgress.needed - xpProgress.progress} XP to Level {(profile?.currentLevel || 1) + 1}
           </Text>
         </View>
 
@@ -231,6 +306,41 @@ export default function ProfileScreen() {
             <Text style={[styles.statLabel, { color: colors.icon }]}>Activities</Text>
           </View>
         </View>
+
+        {/* CEFR Spiky Skills */}
+        {cefrProfile && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>📊 Skill Levels (CEFR)</Text>
+            <View style={[styles.skillsContainer, { backgroundColor: colors.cardBackground }]}>
+              {Object.entries(cefrProfile.skills || {}).map(([skill, data]: [string, any]) => (
+                <View key={skill} style={styles.skillRow}>
+                  <View style={styles.skillInfo}>
+                    <Text style={[styles.skillName, { color: colors.text }]}>
+                      {skill.charAt(0).toUpperCase() + skill.slice(1)}
+                    </Text>
+                    <View style={[styles.skillBadge, { backgroundColor: colors.tint + "20" }]}>
+                      <Text style={[styles.skillLevel, { color: colors.tint }]}>{data.level}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.skillBarBg}>
+                    <View 
+                      style={[
+                        styles.skillBarFill, 
+                        { 
+                          width: `${(data.confidence || 0.5) * 100}%`,
+                          backgroundColor: colors.tint 
+                        }
+                      ]} 
+                    />
+                  </View>
+                  <Text style={[styles.skillConfidence, { color: colors.muted }]}>
+                    {Math.round((data.confidence || 0.5) * 100)}% Confidence
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Weekly Challenges */}
         <View style={styles.section}>
@@ -259,20 +369,20 @@ export default function ProfileScreen() {
                 </View>
                 <View style={styles.challengeProgress}>
                   <Text style={[styles.progressText, { color: colors.tint }]}>
-                    {challenge.progress}/{challenge.goal}
+                    {challenge.progress || 0}/{challenge.goal}
                   </Text>
                   <View style={styles.progressBarBg}>
                     <View
                       style={[
                         styles.progressBarFill,
-                        { width: `${(challenge.progress / challenge.goal) * 100}%` },
+                        { width: `${((challenge.progress || 0) / challenge.goal) * 100}%` },
                       ]}
                     />
                   </View>
                   <View style={styles.xpReward}>
                     <Ionicons name="star" size={12} color="#f59e0b" />
                     <Text style={[styles.xpRewardText, { color: "#f59e0b" }]}>
-                      +{challenge.xp_reward} XP
+                      +{challenge.xpReward || 0} XP
                     </Text>
                   </View>
                 </View>
@@ -438,6 +548,48 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     marginTop: 2,
+  },
+  skillsContainer: {
+    padding: 15,
+    borderRadius: 12,
+    marginTop: 5,
+  },
+  skillRow: {
+    marginBottom: 15,
+  },
+  skillInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  skillName: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  skillBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  skillLevel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  skillBarBg: {
+    height: 6,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  skillBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  skillConfidence: {
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'right',
   },
   section: {
     paddingHorizontal: 20,

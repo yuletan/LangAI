@@ -1,0 +1,78 @@
+﻿npx : FAIL 
+__tests__/quizRendering.test.tsx
+At line:1 char:1
++ npx jest 
+__tests__/quizRendering.test.tsx 
+--verbose 2>&1 | Out-File - ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : Not 
+   Specified: (FAIL __tests__/qu  
+  izRendering.test.tsx:String)    
+ [], RemoteException
+    + FullyQualifiedErrorId : Nat 
+   iveCommandError
+ 
+  Quiz Functionality & Rendering
+    ΓêÜ renders the listening 
+question correctly (678 ms)
+    ├ù handles user interaction 
+and updates score correctly (1039 
+ms)
+    ΓêÜ handles cloze 
+(fill-in-blank) questions from 
+practice_quiz (12 ms)
+
+  ΓùÅ Quiz Functionality & 
+Rendering ΓÇ║ handles user 
+interaction and updates score 
+correctly
+
+    expect(received).toContain(exp
+ected) // indexOf
+
+    Expected value: "Score: 1"
+    Received array: ["Score: ", 1]
+
+    [0m [90m 53 |[39m
+     [90m 54 |[39m     [90m// 
+Wait for state update[39m
+    [31m[1m>[22m[39m[90m 55 
+|[39m     [36mawait[39m 
+waitFor(() [33m=>[39m {
+     [90m    |[39m              
+    [31m[1m^[22m[39m
+     [90m 56 |[39m       
+[36mconst[39m scoreDisplay 
+[33m=[39m getByTestId([32m'scor
+e-display'[39m)[33m;[39m
+     [90m 57 |[39m       expect(
+scoreDisplay[33m.[39mprops[33m.
+[39mchildren)[33m.[39mtoContain
+([32m'Score: 1'[39m)[33m;[39m
+     [90m 58 |[39m     
+})[33m;[39m[0m
+
+      at Object.<anonymous> (__tes
+ts__/quizRendering.test.tsx:55:18)
+      at asyncGeneratorStep (node_
+modules/@babel/runtime/helpers/asy
+ncToGenerator.js:3:17)
+      at _next (node_modules/@babe
+l/runtime/helpers/asyncToGenerator
+.js:17:9)
+      at node_modules/@babel/runti
+me/helpers/asyncToGenerator.js:22:
+7
+      at Object.<anonymous> (node_
+modules/@babel/runtime/helpers/asy
+ncToGenerator.js:14:12)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 2 passed, 
+3 total
+Snapshots:   0 total
+Time:        3.485 s, estimated 
+10 s
+Ran all test suites matching /__te
+sts__\\quizRendering.test.tsx/i.

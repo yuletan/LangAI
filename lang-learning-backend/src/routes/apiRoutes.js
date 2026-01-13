@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const PredictController = require("../controllers/PredictController");
 const ChatController = require("../controllers/ChatController");
-const LessonController = require("../controllers/LessonController");
+const cefrRoutes = require("./cefrRoutes");
 
 // Predict Routes
 router.post("/predict", PredictController.predict);
@@ -12,8 +12,8 @@ router.post("/insights", PredictController.insights);
 // Chat Routes
 router.post("/chat", ChatController.chat);
 
-// Lesson Routes
-router.post("/lessons", LessonController.generateLesson);
+// CEFR Routes (new DIALANG placement, profile management, content generation)
+router.use("/cefr", cefrRoutes);
 
 // Health Check
 router.get("/health", (req, res) => {

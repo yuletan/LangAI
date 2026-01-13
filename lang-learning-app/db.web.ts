@@ -15,10 +15,10 @@ export interface PhraseRow {
   original: string;
   translated: string;
   pronunciation: string;
-  next_review: number;
-  ease_factor: number;
+  nextReview: number;
+  easeFactor: number;
   interval: number;
-  created_at: number;
+  createdAt: number;
   user_id?: string;
 }
 
@@ -151,6 +151,19 @@ export const addPhrase = async (
   return data?.id || null;
 };
 
+export const addPhraseWithDetails = async (
+  original: string,
+  translated: string,
+  pronunciation: string = "",
+  explanation: string = "",
+  useCase: string = ""
+) => {
+  // Currently Supabase schema doesn't support explanation/useCase in this migration, 
+  // keeping it simple to match actions.ts
+  console.log(`📝 Saving phrase with details (Supabase): ${explanation}, ${useCase}`);
+  return addPhrase(original, translated, pronunciation);
+};
+
 export const getPhrasesForReview = async (): Promise<PhraseRow[]> => {
   const now = Date.now();
   const { data, error } = await supabase
@@ -163,7 +176,12 @@ export const getPhrasesForReview = async (): Promise<PhraseRow[]> => {
     console.error("Supabase get review phrases error:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map(p => ({
+    ...p,
+    nextReview: p.next_review,
+    easeFactor: p.ease_factor,
+    createdAt: p.created_at
+  }));
 };
 
 export const getAllPhrases = async (): Promise<PhraseRow[]> => {
@@ -176,7 +194,12 @@ export const getAllPhrases = async (): Promise<PhraseRow[]> => {
     console.error("Supabase get all phrases error:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map(p => ({
+    ...p,
+    nextReview: p.next_review,
+    easeFactor: p.ease_factor,
+    createdAt: p.created_at
+  }));
 };
 
 export const updatePhraseReview = async (
@@ -333,6 +356,64 @@ export const getTotalStats = async (): Promise<{
   }
 
   return { totalActivities, totalDays, currentStreak };
+};
+
+// CEFR Cache Version
+const CEFR_CACHE_VERSION = "v2_cefr_strict";
+
+export const saveLessonToCache = async (
+  topic: string,
+  language: string,
+  level: string,
+  lessonData: any
+) => {
+  try {
+    const wrappedData = {
+      _cacheVersion: CEFR_CACHE_VERSION,
+      data: lessonData
+    };
+    
+    await supabase.from('lesson_cache').insert({
+      topic,
+      language,
+      level,
+      lesson_json: JSON.stringify(wrappedData),
+      created_at: Date.now()
+    });
+  } catch (e) {
+    console.error("Supabase save lesson cache error:", e);
+  }
+};
+
+export const getRandomCachedLesson = async (
+  topic: string,
+  language: string,
+  level: string
+) => {
+  try {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const { data, error } = await supabase
+      .from('lesson_cache')
+      .select('*')
+      .eq('topic', topic)
+      .eq('language', language)
+      .eq('level', level)
+      .gt('created_at', sevenDaysAgo);
+
+    if (error || !data || data.length === 0) return null;
+
+    // Pick random
+    const result = data[Math.floor(Math.random() * data.length)];
+    const parsed = JSON.parse(result.lesson_json);
+    
+    if (parsed._cacheVersion === CEFR_CACHE_VERSION) {
+      return parsed.data;
+    }
+    return null;
+  } catch (e) {
+    console.error("Supabase get cached lesson error:", e);
+    return null;
+  }
 };
 
 // --- Conversation Functions ---
@@ -513,15 +594,9 @@ export const findCachedResponse = async (
 
 // --- Gamification Helpers used within other functions ---
 
+// --- Gamification Helpers used within other functions ---
+
 const ensureUserProfile = async () => {
-    // Check if user has a profile, if not create one.
-    // We assume single user context or auth context. 
-    // In multi-user Supabase, we rely on user_id. Here we might just fetch the single row for this user.
-    // For simplicity, we just try to get the first row or specific ID if auth is used.
-    
-    // We'll use a fixed ID 1 for now if we don't have auth, or rely on RLS/Auth.
-    // Best practice: select single from 'user_profile'. If none, insert default.
-    
     const { data } = await supabase.from('user_profile').select('*').limit(1).single();
     if (!data) {
         await supabase.from('user_profile').insert({
@@ -537,22 +612,41 @@ const ensureUserProfile = async () => {
 export const getUserProfile = async (): Promise<UserProfileRow> => {
   const { data, error } = await supabase.from('user_profile').select('*').limit(1).single();
   if (error || !data) {
-     return { id: 1, total_xp: 0, current_level: 1, longest_streak: 0, languages_used: "", updated_at: Date.now() };
+     return { 
+       id: 1, 
+       totalXp: 0, 
+       currentLevel: 1, 
+       longestStreak: 0, 
+       languagesUsed: "", 
+       updatedAt: Date.now() 
+     } as any;
   }
-  return data;
+  // Map snake_case to camelCase
+  return {
+    id: data.id,
+    totalXp: data.total_xp,
+    currentLevel: data.current_level,
+    longestStreak: data.longest_streak,
+    languagesUsed: data.languages_used,
+    updatedAt: data.updated_at,
+    userId: data.user_id
+  } as any;
 };
 
 export const addXP = async (amount: number): Promise<{ newXP: number; leveledUp: boolean; newLevel: number }> => {
   const profile = await getUserProfile();
-  const oldLevel = profile.current_level;
-  const newXP = profile.total_xp + amount;
+  const oldLevel = (profile as any).currentLevel || 1;
+  const newXP = ((profile as any).totalXp || 0) + amount;
   const newLevel = calculateLevel(newXP);
   
   await supabase.from('user_profile').update({
       total_xp: newXP,
       current_level: newLevel,
       updated_at: Date.now()
-  }).eq('id', profile.id); // Update using the fetched ID
+  }).eq('id', profile.id);
+
+  // Also sync to AsyncStorage for quick web access
+  await AsyncStorage.setItem("totalXp", newXP.toString());
 
   return { newXP, leveledUp: newLevel > oldLevel, newLevel };
 };
@@ -579,10 +673,34 @@ export const getXPForNextLevel = (currentXP: number, currentLevel: number): { ne
   return { needed: xpNeededForNext, progress: xpInCurrentLevel };
 };
 
-// --- Achievement & Challenge Stubs (Can be implemented similarly but omitted for brevity) ---
-// Minimal implementations to prevent crashes
+export const resetAllProgress = async (): Promise<boolean> => {
+  try {
+    // Clear Supabase tables
+    await Promise.all([
+      supabase.from('user_stats').delete().neq('id', 0),
+      supabase.from('achievements').delete().neq('id', 0),
+      supabase.from('challenges').delete().neq('id', 0),
+      supabase.from('phrases').delete().neq('id', 0),
+      supabase.from('conversations').delete().neq('id', 0),
+      supabase.from('lesson_cache').delete().neq('id', 0),
+      supabase.from('api_cache').delete().neq('hash_key', ''),
+      supabase.from('user_profile').delete().neq('id', 0),
+    ]);
+    
+    // Clear AsyncStorage
+    await AsyncStorage.clear();
+    
+    // Re-initialize profile
+    await ensureUserProfile();
+    return true;
+  } catch (e) {
+    console.error("Reset progress error (Supabase):", e);
+    return false;
+  }
+};
+
+// --- Achievement & Challenge Stubs ---
 export const unlockAchievement = async (badgeId: string): Promise<boolean> => {
-    // Check if exists
     const { data } = await supabase.from('achievements').select('*').eq('badge_id', badgeId).single();
     if (data) return false;
 
@@ -592,47 +710,148 @@ export const unlockAchievement = async (badgeId: string): Promise<boolean> => {
 
 export const getUnlockedAchievements = async (): Promise<AchievementRow[]> => {
     const { data } = await supabase.from('achievements').select('*');
-    return data || [];
+    return (data || []).map(a => ({
+      id: a.id,
+      badgeId: a.badge_id,
+      unlockedAt: a.unlocked_at,
+      userId: a.user_id
+    })) as any;
 };
 
 export const checkAndUnlockAchievements = async (): Promise<string[]> => {
-    return []; // Logic is complex to duplicate fully here, keeping simple
+    return [];
 };
 
 export const getActiveChallenges = async (): Promise<ChallengeRow[]> => {
     const now = Date.now();
     const { data } = await supabase.from('challenges').select('*').gt('expires_at', now).eq('completed', 0);
-    return data || [];
+    return (data || []).map(c => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      goal: c.goal,
+      progress: c.progress,
+      xpReward: c.xp_reward,
+      type: c.type,
+      expiresAt: c.expires_at,
+      completed: c.completed,
+      userId: c.user_id
+    })) as any;
 };
 
 export const generateWeeklyChallenges = async (): Promise<void> => {
-    // Simplified generation logic
     const active = await getActiveChallenges();
     if (active.length >= 3) return;
     
-    // Insert some defaults if needed
-    // ...
+    const now = Date.now();
+    const nextWeek = now + 7 * 24 * 60 * 60 * 1000;
+
+    const defaults = [
+      { title: "Translation Master", description: "Save 10 new phrases", goal: 10, type: "translations", xp_reward: 100 },
+      { title: "Daily Learner", description: "Complete 5 grammar lessons", goal: 5, type: "lessons", xp_reward: 150 },
+      { title: "Chatbox Hero", description: "Send 20 chat messages", goal: 20, type: "chat", xp_reward: 120 }
+    ];
+
+    for (const challenge of defaults) {
+      await supabase.from('challenges').insert({
+        ...challenge,
+        progress: 0,
+        expires_at: nextWeek,
+        completed: 0
+      });
+    }
 };
 
 export const updateChallengeProgress = async (type: string, increment: number = 1): Promise<ChallengeRow | null> => {
-    // ...
     return null;
 };
 
 export const trackLanguageUsed = async (language: string): Promise<void> => {
-    // ...
+    try {
+      const profile = await getUserProfile();
+      if (!profile) return;
+      const languages = ((profile as any).languagesUsed || "").split(",").filter((l: string) => l.length > 0);
+      
+      if (!languages.includes(language)) {
+        languages.push(language);
+        await supabase.from('user_profile').update({
+          languages_used: languages.join(","),
+          updated_at: Date.now()
+        }).eq('id', profile.id);
+      }
+    } catch (e) {
+      console.error("Track language error:", e);
+    }
 };
 
 export const updateLongestStreak = async (currentStreak: number): Promise<void> => {
-    // ...
+    try {
+      const profile = await getUserProfile();
+      if (!profile) return;
+      if (currentStreak > (profile as any).longestStreak) {
+        await supabase.from('user_profile').update({
+          longest_streak: currentStreak,
+          updated_at: Date.now()
+        }).eq('id', profile.id);
+      }
+    } catch (e) {
+      console.error("Update streak error:", e);
+    }
 };
 
 export const getWeakAreas = async (): Promise<{ area: string; score: number }[]> => {
-    // Mock analytics
     return [];
 };
 
 export const getAccuracyTrend = async (days: number = 7): Promise<{ date: string; accuracy: number }[]> => {
-    // Mock trend or fetch and calculate
     return [];
 };
+
+// --- CEFR Profile Functions ---
+
+export const getCEFRProfile = async (): Promise<any> => {
+  const { data, error } = await supabase.from('cefr_profile').select('*').limit(1).single();
+  if (error || !data) {
+     const defaultSkills = {
+       listening: { level: "A1", confidence: 0.5 },
+       reading: { level: "A1", confidence: 0.5 },
+       speaking: { level: "A1", confidence: 0.5 },
+       writing: { level: "A1", confidence: 0.5 }
+     };
+     return {
+       overallLevel: "A1",
+       skills: defaultSkills,
+       placementHistory: []
+     };
+  }
+  
+  return {
+    id: data.id,
+    overallLevel: data.overall_level,
+    skills: typeof data.skills_json === 'string' ? JSON.parse(data.skills_json) : data.skills_json,
+    placementHistory: typeof data.placement_history_json === 'string' ? JSON.parse(data.placement_history_json) : data.placement_history_json,
+    lastAssessed: data.last_assessed,
+    updatedAt: data.updated_at
+  };
+};
+
+export const updateCEFRProfile = async (profileData: any): Promise<void> => {
+  const { skills, placementHistory, overallLevel } = profileData;
+  
+  const payload = {
+    overall_level: overallLevel,
+    skills_json: JSON.stringify(skills),
+    placement_history_json: JSON.stringify(placementHistory || []),
+    last_assessed: Date.now(),
+    updated_at: Date.now()
+  };
+
+  const { data: existing } = await supabase.from('cefr_profile').select('id').limit(1).single();
+  
+  if (existing) {
+    await supabase.from('cefr_profile').update(payload).eq('id', existing.id);
+  } else {
+    await supabase.from('cefr_profile').insert(payload);
+  }
+};
+

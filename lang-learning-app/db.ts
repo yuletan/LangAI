@@ -11,5 +11,5 @@ export { db as drizzleDb } from "./db/client";
 export { BADGES } from "./constants/game-data";
 export { CEFR_GUIDE } from "./services/gamification";
 
-// Note: Direct SQLite access is now discouraged. 
 // Use the exported actions instead.
+export { getCEFRProfile, updateCEFRProfile } from "./db/actions";

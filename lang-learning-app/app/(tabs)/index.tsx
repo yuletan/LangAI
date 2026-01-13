@@ -141,12 +141,11 @@ export default function App() {
     loadSavedPhrases();
     loadStats();
     
-    // Load saved language
+    // Load saved settings
     AsyncStorage.getItem("targetLanguage").then(lang => {
       if (lang) setOutputLang(lang);
     });
 
-    // Load saved CEFR level
     AsyncStorage.getItem("cefrLevel").then(level => {
       if (level) setCefrLevel(level);
     });
@@ -168,12 +167,29 @@ export default function App() {
     ).start();
   }, []);
 
+  // Reload settings on focus
+  useEffect(() => {
+    const loadSettings = async () => {
+      const lang = await AsyncStorage.getItem("targetLanguage");
+      if (lang) setOutputLang(lang);
+      
+      // Load Predictor-specific level, fallback to Global Profile level
+      let pLevel = await AsyncStorage.getItem("predictor_cefr_level");
+      if (!pLevel) {
+          pLevel = await AsyncStorage.getItem("cefrLevel");
+      }
+      if (pLevel) setCefrLevel(pLevel);
+    };
+    loadSettings();
+  }, []);
+
   useEffect(() => {
     AsyncStorage.setItem("targetLanguage", outputLang);
   }, [outputLang]);
 
   useEffect(() => {
-    AsyncStorage.setItem("cefrLevel", cefrLevel);
+    // Save to predictor-specific key ONLY
+    AsyncStorage.setItem("predictor_cefr_level", cefrLevel);
   }, [cefrLevel]);
 
   const loadStats = async () => {
@@ -203,7 +219,7 @@ export default function App() {
           original: p.original,
           translation: p.translated,
           pronunciation: p.pronunciation || "",
-          timestamp: p.created_at
+          timestamp: p.createdAt
         }));
       }
       
@@ -214,16 +230,16 @@ export default function App() {
         if (savedData) {
           const asyncPhrases = JSON.parse(savedData);
           // Merge with SQLite phrases, avoiding duplicates
-          asyncPhrases.forEach((phrase: any) => {
-            if (!allPhrasesData.some(p => p.original === phrase.original)) {
-              allPhrasesData.push({
-                original: phrase.original,
-                translation: phrase.translated || phrase.translation,
-                pronunciation: phrase.pronunciation || "",
-                timestamp: phrase.created_at || phrase.timestamp || Date.now()
+              asyncPhrases.forEach((phrase: any) => {
+                if (!allPhrasesData.some(p => p.original === phrase.original)) {
+                  allPhrasesData.push({
+                    original: phrase.original,
+                    translation: phrase.translated || phrase.translation,
+                    pronunciation: phrase.pronunciation || "",
+                    timestamp: phrase.createdAt || phrase.timestamp || phrase.created_at || Date.now()
+                  });
+                }
               });
-            }
-          });
         }
       } catch (asyncError) {
         console.log("AsyncStorage phrases load error:", asyncError);

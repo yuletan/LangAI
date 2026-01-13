@@ -29,11 +29,16 @@ export const getXPForNextLevel = (currentXP: number, currentLevel: number): { ne
   };
 };
 
+export const CEFR_REWARDS = {
+  STANDARD_QUIZ: 50,
+  LEVEL_UP_QUIZ: 500,
+};
+
 export const CEFR_GUIDE = {
-  A1: "Use only top 500 basic words. Simple sentences.",
-  A2: "Use common vocabulary. Short compound sentences allowed.",
-  B1: "Use intermediate vocabulary. Complex sentences OK.",
-  B2: "Use advanced vocabulary. Idioms and nuanced expressions allowed.",
-  C1: "Use sophisticated vocabulary. Include idioms, complex grammar.",
-  C2: "Use native-level vocabulary. All constructs allowed.",
+  A1: "Can understand and use familiar everyday expressions and very basic phrases aimed at the satisfaction of needs of a concrete type.",
+  A2: "Can understand sentences and frequently used expressions related to areas of most immediate relevance.",
+  B1: "Can understand the main points of clear standard input on familiar matters regularly encountered in work, school, leisure, etc.",
+  B2: "Can understand the main ideas of complex text on both concrete and abstract topics, including technical discussions in their field of specialization.",
+  C1: "Can understand a wide range of demanding, longer texts, and recognize implicit meaning.",
+  C2: "Can understand with ease virtually everything heard or read.",
 };

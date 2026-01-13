@@ -57,10 +57,10 @@ const LANGUAGES = [
 
 interface SavedConversation {
   id: number;
-  scenario: string;
-  language: string;
-  messages_json: string;
-  created_at: number;
+  scenario: string | null;
+  language: string | null;
+  messagesJson: string; 
+  createdAt: number;   
 }
 
 export default function ChatScreen() {
@@ -100,9 +100,9 @@ export default function ChatScreen() {
 
   const continueConversation = (convo: SavedConversation) => {
     try {
-      const parsedMessages = typeof convo.messages_json === 'string' 
-        ? JSON.parse(convo.messages_json) 
-        : convo.messages_json;
+      const parsedMessages = typeof convo.messagesJson === 'string' 
+        ? JSON.parse(convo.messagesJson) 
+        : convo.messagesJson;
       
       // Find matching scenario and language
       const scenarioObj = SCENARIOS.find(s => s.value === convo.scenario) || SCENARIOS[0];
@@ -136,9 +136,9 @@ export default function ChatScreen() {
 
   const getConvoPreview = (convo: SavedConversation): string => {
     try {
-      const msgs = typeof convo.messages_json === 'string' 
-        ? JSON.parse(convo.messages_json) 
-        : convo.messages_json;
+      const msgs = typeof convo.messagesJson === 'string' 
+        ? JSON.parse(convo.messagesJson) 
+        : convo.messagesJson;
       const lastUserMsg = [...msgs].reverse().find((m: Message) => m.role === "user");
       if (lastUserMsg) {
         return lastUserMsg.content.length > 40 
@@ -446,16 +446,16 @@ export default function ChatScreen() {
                       ]}
                       onPress={() => continueConversation(convo)}
                     >
-                      <View style={[styles.recentConvoIcon, { backgroundColor: getScenarioColor(convo.scenario) }]}>
-                        <Ionicons name={getScenarioIcon(convo.scenario) as any} size={20} color="#fff" />
+                      <View style={[styles.recentConvoIcon, { backgroundColor: getScenarioColor(convo.scenario || "") }]}>
+                        <Ionicons name={getScenarioIcon(convo.scenario || "") as any} size={20} color="#fff" />
                       </View>
                       <View style={styles.recentConvoInfo}>
                         <View style={styles.recentConvoHeader}>
                           <Text style={[styles.recentConvoTitle, { color: colors.text }]}>
-                            {convo.language} • {getScenarioLabel(convo.scenario)}
+                            {convo.language} • {getScenarioLabel(convo.scenario || "Chat")}
                           </Text>
                           <Text style={[styles.recentConvoDate, { color: colors.icon }]}>
-                            {formatDate(convo.created_at)}
+                            {formatDate(convo.createdAt)}
                           </Text>
                         </View>
                         <Text style={[styles.recentConvoPreview, { color: colors.icon }]} numberOfLines={1}>

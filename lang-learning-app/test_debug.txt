@@ -1,0 +1,82 @@
+﻿npx : FAIL __tests__/compo
+nents/ExploreUI.test.tsx
+At line:1 char:1
++ npx jest __tests__/compo
+nents/ExploreUI.test.tsx 
+--no-cache 2>&1 | Ou ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  AIL __tests__/...lore   
+ UI.test.tsx:String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+  ΓùÅ Test suite failed 
+to run
+
+    TypeError: _ExpoSQLite
+.default.NativeDatabase 
+is not a constructor
+
+    [0m [90m 3 |[39m 
+[36mimport[39m 
+[33m*[39m [36mas[39m 
+schema [36mfrom[39m [32
+m"./schema"[39m[33m;[39
+m
+     [90m 4 |[39m
+    
+[31m[1m>[22m[39m[90m 
+5 |[39m [36mconst[39m 
+expoDb [33m=[39m [33mSQ
+Lite[39m[33m.[39mopenDa
+tabaseSync([32m"language_
+app.db"[39m)[33m;[39m
+     [90m   |[39m       
+                
+[31m[1m^[22m[39m
+     [90m 6 |[39m
+     [90m 7 |[39m 
+[36mexport[39m 
+[36mconst[39m db 
+[33m=[39m 
+drizzle(expoDb[33m,[39m 
+{ schema })[33m;[39m
+     [90m 8 |[39m[0m
+
+      at 
+Object.openDatabaseSync (n
+ode_modules/expo-sqlite/sr
+c/SQLiteDatabase.ts:562:26
+)
+      at 
+Object.openDatabaseSync 
+(db/client.ts:5:23)
+      at Object.require 
+(db/actions.ts:1:1)
+      at Object.require 
+(db.ts:6:1)
+      at Object.require (C
+:\Users\USER\Downloads\Lan
+guage Predictor\Language P
+redictor\lang-learning-app
+\app\(tabs)../../../../../
+../explore.tsx:27:1)
+      at Object.require (_
+_tests__/components/Explor
+eUI.test.tsx:3:1)
+
+Test Suites: 1 failed, 1 
+total
+Tests:       0 total
+Snapshots:   0 total
+Time:        15.391 s
+Ran all test suites 
+matching /__tests__\\compo
+nents\\ExploreUI.test.tsx/
+i.

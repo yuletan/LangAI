@@ -3,7 +3,7 @@
  * Requirements: 6.1, 6.2, 6.3
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   DefaultTheme,
   DarkTheme,
@@ -12,6 +12,7 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import "react-native-reanimated";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useTheme } from "@/hooks/use-theme";
@@ -25,18 +26,35 @@ function useProtectedRoute() {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
   useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const value = await AsyncStorage.getItem("hasCompletedOnboarding");
+        setCheckingOnboarding(false);
+        return value === "true";
+      } catch (e) {
+        setCheckingOnboarding(false);
+        return false;
+      }
+    };
+
     if (loading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inOnboardingGroup = segments[0] === "onboarding";
 
     if (!user && !inAuthGroup) {
-      // Redirect to login if not authenticated and not in auth group
       router.replace("/(auth)/login" as any);
-    } else if (user && inAuthGroup) {
-      // Redirect to main app if authenticated and in auth group
-      router.replace("/(tabs)" as any);
+    } else if (user) {
+      checkOnboarding().then(hasOnboarded => {
+        if (!hasOnboarded && !inOnboardingGroup) {
+          router.replace("/onboarding" as any);
+        } else if (hasOnboarded && (inAuthGroup || inOnboardingGroup)) {
+          router.replace("/(tabs)" as any);
+        }
+      });
     }
   }, [user, loading, segments]);
 }
@@ -48,7 +66,6 @@ function RootLayoutContent() {
 
   useProtectedRoute();
 
-  // Show loading screen while checking auth state
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
@@ -61,6 +78,7 @@ function RootLayoutContent() {
     <NavigationThemeProvider value={navigationTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding/index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="modal"

@@ -68,6 +68,15 @@ export const lessonCache = sqliteTable("lesson_cache", {
   createdAt: integer("created_at").notNull(),
 });
 
+export const cefrProfile = sqliteTable("cefr_profile", {
+  id: integer("id").primaryKey().default(1),
+  overallLevel: text("overall_level").default("A1"),
+  skillsJson: text("skills_json").notNull(), // JSON string for {listening, reading, speaking, writing}
+  placementHistoryJson: text("placement_history_json").default("[]"),
+  lastAssessed: integer("last_assessed"),
+  updatedAt: integer("updated_at"),
+});
+
 // Infer types
 export type UserStat = typeof userStats.$inferSelect;
 export type Phrase = typeof phrases.$inferSelect;
@@ -75,3 +84,4 @@ export type Conversation = typeof conversations.$inferSelect;
 export type Achievement = typeof achievements.$inferSelect;
 export type Challenge = typeof challenges.$inferSelect;
 export type UserProfile = typeof userProfile.$inferSelect;
+export type UserCEFRProfile = typeof cefrProfile.$inferSelect;
